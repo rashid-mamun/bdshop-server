@@ -1,0 +1,277 @@
+const request = require('supertest');
+const app = require('../../src/app');
+const { STATUS_CODES } = require('../../src/constants/statusCodes');
+const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
+
+describe('Public Endpoints', () => {
+    // No beforeAll/afterAll for DB connection
+    // Add test data setup/cleanup if needed
+
+    describe('GET /', () => {
+        it('should return welcome message and API information', async () => {
+            const response = await request(app)
+                .get('/')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toContain('BdShop Server API');
+            expect(response.body).toHaveProperty('version');
+            expect(response.body).toHaveProperty('endpoints');
+            expect(Array.isArray(response.body.endpoints)).toBe(true);
+        });
+
+        it('should include all available endpoints', async () => {
+            const response = await request(app)
+                .get('/')
+                .expect(STATUS_CODES.OK);
+
+            const expectedEndpoints = [
+                '/api/users',
+                '/api/services',
+                '/api/orders',
+                '/api/carts',
+                '/api/reviews'
+            ];
+
+            expectedEndpoints.forEach(endpoint => {
+                expect(response.body.endpoints).toContain(endpoint);
+            });
+        });
+
+        it('should include documentation link', async () => {
+            const response = await request(app)
+                .get('/')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body).toHaveProperty('documentation');
+            expect(response.body.documentation).toBe('/docs');
+        });
+    });
+
+    describe('GET /health', () => {
+        it('should return server health status', async () => {
+            const response = await request(app)
+                .get('/health')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe(SUCCESS_MESSAGES.SERVER_HEALTHY);
+            expect(response.body).toHaveProperty('timestamp');
+            expect(response.body).toHaveProperty('environment');
+            expect(response.body).toHaveProperty('version');
+        });
+
+        it('should include proper timestamp format', async () => {
+            const response = await request(app)
+                .get('/health')
+                .expect(STATUS_CODES.OK);
+
+            const timestamp = new Date(response.body.timestamp);
+            expect(timestamp instanceof Date).toBe(true);
+            expect(timestamp.toString()).not.toBe('Invalid Date');
+        });
+
+        it('should handle multiple concurrent health checks', async () => {
+            const promises = Array(5).fill().map(() =>
+                request(app).get('/health').expect(STATUS_CODES.OK)
+            );
+
+            const responses = await Promise.all(promises);
+
+            responses.forEach(response => {
+                expect(response.body.success).toBe(true);
+                expect(response.body.message).toBe(SUCCESS_MESSAGES.SERVER_HEALTHY);
+            });
+        });
+    });
+
+    describe('GET /api/services (Public Access)', () => {
+        it('should allow public access to services list', async () => {
+            const response = await request(app)
+                .get('/api/services')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe('Services fetched successfully');
+            expect(response.body.data).toHaveProperty('services');
+            expect(response.body.data).toHaveProperty('pagination');
+        });
+
+        it('should support pagination for public access', async () => {
+            const response = await request(app)
+                .get('/api/services?page=1&limit=5')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.pagination.page).toBe(1);
+            expect(response.body.data.pagination.limit).toBe(5);
+        });
+
+        it('should support filtering by category for public access', async () => {
+            const response = await request(app)
+                .get('/api/services?category=electronics')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data.services)).toBe(true);
+        });
+
+        it('should support search functionality for public access', async () => {
+            const response = await request(app)
+                .get('/api/services?search=test')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data.services)).toBe(true);
+        });
+    });
+
+    describe('GET /api/services/:id (Public Access)', () => {
+        it('should return 400 for invalid service ID format', async () => {
+            const response = await request(app)
+                .get('/api/services/invalid-id')
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('GET /api/services/categories/all (Public Access)', () => {
+        it('should allow public access to service categories', async () => {
+            const response = await request(app)
+                .get('/api/services/categories/all')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+        });
+    });
+
+    describe('GET /api/reviews (Public Access)', () => {
+        it('should allow public access to reviews list', async () => {
+            const response = await request(app)
+                .get('/api/reviews')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe('Reviews fetched successfully');
+            expect(response.body.data).toHaveProperty('reviews');
+            expect(response.body.data).toHaveProperty('pagination');
+        });
+
+        it('should support filtering reviews by rating for public access', async () => {
+            const response = await request(app)
+                .get('/api/reviews?rating=5')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data.reviews)).toBe(true);
+        });
+
+        it('should support pagination for reviews public access', async () => {
+            const response = await request(app)
+                .get('/api/reviews?page=1&limit=10')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.pagination.page).toBe(1);
+            expect(response.body.data.pagination.limit).toBe(10);
+        });
+    });
+
+    describe('GET /api/reviews/:id (Public Access)', () => {
+        it('should return 400 for invalid review ID format', async () => {
+            const response = await request(app)
+                .get('/api/reviews/invalid-id')
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('CORS Headers', () => {
+        it('should include CORS headers in responses', async () => {
+            const response = await request(app)
+                .get('/health')
+                .set('Origin', 'http://localhost:3000')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+            expect(response.headers['access-control-allow-credentials']).toBe('true');
+        });
+
+        it('should handle preflight requests correctly', async () => {
+            const response = await request(app)
+                .options('/health')
+                .set('Origin', 'http://localhost:3000')
+                .set('Access-Control-Request-Method', 'GET')
+                .expect(STATUS_CODES.NO_CONTENT);
+
+            expect(response.headers['access-control-allow-origin']).toBeDefined();
+            expect(response.headers['access-control-allow-methods']).toBeDefined();
+        });
+    });
+
+    describe('Security Headers', () => {
+        it('should include security headers from Helmet', async () => {
+            const response = await request(app)
+                .get('/health')
+                .expect(STATUS_CODES.OK);
+
+            // Check for common security headers
+            expect(response.headers['x-content-type-options']).toBe('nosniff');
+            expect(response.headers['x-frame-options']).toBeDefined();
+            expect(response.headers['x-xss-protection']).toBeDefined();
+        });
+
+        it('should include content-type header', async () => {
+            const response = await request(app)
+                .get('/health')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.headers['content-type']).toMatch(/application\/json/);
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('should handle 404 for non-existent routes', async () => {
+            const response = await request(app)
+                .get('/nonexistent-route')
+                .expect(STATUS_CODES.NOT_FOUND);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Route not found');
+        });
+
+        it('should handle malformed JSON gracefully', async () => {
+            const response = await request(app)
+                .post('/api/users')
+                .set('Content-Type', 'application/json')
+                .send('{"invalid": json}')
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+        });
+
+        it('should handle unsupported HTTP methods', async () => {
+            const response = await request(app)
+                .patch('/health')
+                .expect(STATUS_CODES.METHOD_NOT_ALLOWED);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('API Versioning', () => {
+        it('should use correct API prefix', async () => {
+            const response = await request(app)
+                .get('/')
+                .expect(STATUS_CODES.OK);
+
+            // Check that endpoints use the correct API prefix
+            response.body.endpoints.forEach(endpoint => {
+                expect(endpoint).toMatch(/^\/api\//);
+            });
+        });
+    });
+}); 
