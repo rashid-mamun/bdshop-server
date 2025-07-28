@@ -101,8 +101,8 @@ BdShopServer is a full-featured backend API designed for e-commerce applications
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd BdShopServer
+   git clone https://github.com/rashid-mamun/bdshop-server.git
+   cd bdshop-server
    ```
 
 2. **Install dependencies**
