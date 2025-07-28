@@ -1,0 +1,515 @@
+{
+    "info": {
+        "_postman_id": "bdshopserver-collection-001",
+        "name": "BdShopServer API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Comprehensive Postman collection for all BdShopServer API endpoints. Uses {{base_url}} and {{jwt_token}} variables."
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000/api/v1"
+        },
+        {
+            "key": "jwt_token",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "url": "{{base_url}}/health"
+            }
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Register User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/users",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"user@example.com\",\n  \"displayName\": \"John Doe\",\n  \"password\": \"password123\",\n  \"district\": \"Dhaka\",\n  \"division\": \"Dhaka\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get User by Email",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/users/user@example.com"
+                    }
+                },
+                {
+                    "name": "Get All Users (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/users"
+                    }
+                },
+                {
+                    "name": "Update User Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/users/profile/me",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"displayName\": \"John Smith\",\n  \"district\": \"Chittagong\",\n  \"division\": \"Chittagong\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User (Admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/users/user@example.com"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Services",
+            "item": [
+                {
+                    "name": "Get All Services",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/services?page=1&limit=10"
+                    }
+                },
+                {
+                    "name": "Get Service by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/services/{{service_id}}"
+                    }
+                },
+                {
+                    "name": "Create Service (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/services",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Gaming Laptop\",\n  \"description\": \"High-performance gaming laptop\",\n  \"price\": 150000,\n  \"category\": \"electronics\",\n  \"img\": \"https://example.com/laptop.jpg\",\n  \"model\": \"GL-2024\",\n  \"config\": \"RTX 4070, 32GB RAM\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Update Service (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/services/{{service_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"price\": 140000,\n  \"description\": \"Updated description\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Service (Admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/services/{{service_id}}"
+                    }
+                },
+                {
+                    "name": "Search Services",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/services?search=laptop"
+                    }
+                },
+                {
+                    "name": "Get Service Statistics (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/services/stats/overview"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Carts",
+            "item": [
+                {
+                    "name": "Add Item to Cart",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"product-123\",\n  \"email\": \"user@example.com\",\n  \"img\": \"https://example.com/product.jpg\",\n  \"description\": \"Product description\",\n  \"model\": \"Model-X\",\n  \"price\": 50000,\n  \"quantity\": 2\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get User Cart",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts/user@example.com"
+                    }
+                },
+                {
+                    "name": "Update Cart Item Quantity",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts/{{cart_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"quantity\": 3\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Remove Item from Cart",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts/{{cart_id}}"
+                    }
+                },
+                {
+                    "name": "Clear User Cart",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts/clear/user@example.com"
+                    }
+                },
+                {
+                    "name": "Get Cart Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/carts/summary/user@example.com"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Orders",
+            "item": [
+                {
+                    "name": "Create Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"user@example.com\",\n  \"items\": [\n    {\n      \"serviceId\": \"service-id-123\",\n      \"name\": \"Gaming Laptop\",\n      \"price\": 150000,\n      \"quantity\": 1\n    }\n  ],\n  \"total\": 150000,\n  \"shippingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"Dhaka\",\n    \"postalCode\": \"1200\",\n    \"country\": \"Bangladesh\"\n  },\n  \"paymentStatus\": \"pending\",\n  \"status\": \"pending\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get All Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders?page=1&limit=10"
+                    }
+                },
+                {
+                    "name": "Get Order by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}"
+                    }
+                },
+                {
+                    "name": "Update Order Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"confirmed\",\n  \"paymentStatus\": \"paid\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Order (Admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}"
+                    }
+                },
+                {
+                    "name": "Get Order Statistics (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/stats/summary"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Reviews",
+            "item": [
+                {
+                    "name": "Get All Reviews",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/reviews?page=1&limit=10"
+                    }
+                },
+                {
+                    "name": "Get Review by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/reviews/{{review_id}}"
+                    }
+                },
+                {
+                    "name": "Create Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/reviews",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"title\": \"Great Product!\",\n  \"img\": \"https://example.com/review.jpg\",\n  \"description\": \"Excellent quality and fast delivery\",\n  \"star\": 5,\n  \"serviceId\": \"service-id-123\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Update Review",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/reviews/{{review_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"star\": 4,\n  \"description\": \"Updated review\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Review (Admin/User)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/reviews/{{review_id}}"
+                    }
+                },
+                {
+                    "name": "Get Review Statistics",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/reviews/stats/{{service_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public",
+            "item": [
+                {
+                    "name": "Get All Blogs",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/blogs"
+                    }
+                },
+                {
+                    "name": "Get Blog by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/blogs/{{blog_id}}"
+                    }
+                },
+                {
+                    "name": "Get All Team Members",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/teams"
+                    }
+                },
+                {
+                    "name": "Get Team Member by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/teams/{{team_id}}"
+                    }
+                }
+            ]
+        }
+    ]
+}
