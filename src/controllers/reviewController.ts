@@ -23,7 +23,8 @@ type RequestWithUser = Request & {
 const canAccessReview = (req: RequestWithUser, reviewEmail?: string) => {
     const requester = req.user;
     if (!requester) return false;
-    if (requester.role === USER_ROLES.ADMIN || requester.role === USER_ROLES.SUPER_ADMIN) return true;
+    if (requester.role === USER_ROLES.ADMIN || requester.role === USER_ROLES.SUPER_ADMIN)
+        return true;
     return Boolean(reviewEmail && requester.email === reviewEmail);
 };
 

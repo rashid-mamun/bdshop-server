@@ -85,7 +85,9 @@ const orderController = {
                     }
 
                     if (service.stock < quantity) {
-                        const error = new Error(`Only ${service.stock} item(s) left for ${service.name}`);
+                        const error = new Error(
+                            `Only ${service.stock} item(s) left for ${service.name}`,
+                        );
                         error.name = 'ValidationError';
                         throw error;
                     }

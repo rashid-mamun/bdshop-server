@@ -309,7 +309,11 @@ const userController = {
 
             const user = await User.findOne({ email: payload.email });
             if (!user?.isActive) {
-                return sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, 'User account is inactive');
+                return sendErrorResponse(
+                    res,
+                    STATUS_CODES.UNAUTHORIZED,
+                    'User account is inactive',
+                );
             }
 
             const { generateTokens, setAuthCookies } = await import('../utils/jwt');

@@ -32,7 +32,11 @@ const validateUser = (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (!validatePhone(phone)) {
-        return sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, 'Please provide a valid phone number');
+        return sendErrorResponse(
+            res,
+            STATUS_CODES.BAD_REQUEST,
+            'Please provide a valid phone number',
+        );
     }
 
     if (
@@ -102,7 +106,11 @@ const validateProfileUpdate = (req: Request, res: Response, next: NextFunction) 
     }
 
     if (profileImage && !validateURL(profileImage)) {
-        return sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, 'Please provide a valid profile image URL');
+        return sendErrorResponse(
+            res,
+            STATUS_CODES.BAD_REQUEST,
+            'Please provide a valid profile image URL',
+        );
     }
 
     if (!displayName && !district && !division && !profileImage && !dob && !gender) {
@@ -119,7 +127,16 @@ const validateProfileUpdate = (req: Request, res: Response, next: NextFunction) 
 const validateService = (req: Request, res: Response, next: NextFunction) => {
     const { name, model, img, price, description, config, category, madeIn } = req.body;
 
-    if (!name || !model || !img || price === undefined || !description || !config || !category || !madeIn) {
+    if (
+        !name ||
+        !model ||
+        !img ||
+        price === undefined ||
+        !description ||
+        !config ||
+        !category ||
+        !madeIn
+    ) {
         return res.status(400).json({
             success: false,
             error: 'All required fields must be provided',

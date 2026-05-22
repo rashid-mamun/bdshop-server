@@ -25,7 +25,11 @@ export const authController = {
         const { sub: googleId, name, email, picture, email_verified: emailVerified } = data;
 
         if (!email || emailVerified === false) {
-            return sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, 'Google email is not verified');
+            return sendErrorResponse(
+                res,
+                STATUS_CODES.UNAUTHORIZED,
+                'Google email is not verified',
+            );
         }
 
         let user = await User.findOne({ email });

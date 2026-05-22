@@ -11,7 +11,13 @@ router.post('/register', validateUser, apiRateLimiter, userController.createUser
 router.post('/login', apiRateLimiter, userController.login);
 router.post('/logout', apiRateLimiter, userController.logout);
 router.post('/refresh', apiRateLimiter, userController.refreshToken);
-router.get('/:email', authenticateToken, requireOwnership('email'), apiRateLimiter, userController.getUserByEmail);
+router.get(
+    '/:email',
+    authenticateToken,
+    requireOwnership('email'),
+    apiRateLimiter,
+    userController.getUserByEmail,
+);
 
 router.get('/', authenticateToken, requireAdmin, apiRateLimiter, userController.getAllUsers);
 router.put(

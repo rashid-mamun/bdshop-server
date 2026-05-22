@@ -69,7 +69,10 @@ const reviewService = {
             const currentPage = Math.max(1, Number.isFinite(requestedPage) ? requestedPage : 1);
             const pageSize = Math.min(
                 APP_CONFIG.MAX_PAGE_SIZE,
-                Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : APP_CONFIG.DEFAULT_LIMIT),
+                Math.max(
+                    1,
+                    Number.isFinite(requestedLimit) ? requestedLimit : APP_CONFIG.DEFAULT_LIMIT,
+                ),
             );
             const skip = (currentPage - 1) * pageSize;
 

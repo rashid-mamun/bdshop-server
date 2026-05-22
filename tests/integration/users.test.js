@@ -198,9 +198,7 @@ describe('User Endpoints', () => {
 
     describe('POST /api/users/logout', () => {
         it('should clear auth cookies', async () => {
-            const response = await request(app)
-                .post('/api/users/logout')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).post('/api/users/logout').expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             const cookies = response.headers['set-cookie'] || [];

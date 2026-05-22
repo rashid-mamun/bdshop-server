@@ -32,7 +32,9 @@ export const createStockNotification = async (req: Request, res: Response) => {
 
         await notification.save();
 
-        res.status(201).json(createSuccessResponse(notification, 'Back-in-stock alert saved successfully'));
+        res.status(201).json(
+            createSuccessResponse(notification, 'Back-in-stock alert saved successfully'),
+        );
     } catch (error: Error | unknown) {
         res.status(500).json({ success: false, error: getErrorMessage(error) });
     }

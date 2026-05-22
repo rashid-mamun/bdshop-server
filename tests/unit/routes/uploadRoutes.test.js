@@ -14,7 +14,8 @@ jest.mock('../../../src/config/cloudinary', () => ({
 
 const express = require('express');
 const request = require('supertest');
-const uploadRoutes = require('../../../src/routes/uploadRoutes').default ||
+const uploadRoutes =
+    require('../../../src/routes/uploadRoutes').default ||
     require('../../../src/routes/uploadRoutes');
 const cloudinary = require('../../../src/config/cloudinary').default;
 const { STATUS_CODES } = require('../../../src/constants/statusCodes');
@@ -31,9 +32,7 @@ describe('routes/uploadRoutes', () => {
         const app = express();
         app.use('/api/upload', uploadRoutes);
 
-        const response = await request(app)
-            .post('/api/upload')
-            .expect(STATUS_CODES.BAD_REQUEST);
+        const response = await request(app).post('/api/upload').expect(STATUS_CODES.BAD_REQUEST);
 
         expect(response.body.success).toBe(false);
     });

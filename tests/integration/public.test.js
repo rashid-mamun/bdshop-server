@@ -137,9 +137,7 @@ describe('Public Endpoints', () => {
         });
 
         it('should return blog by id', async () => {
-            const response = await request(app)
-                .get(`/blogs/${blog._id}`)
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get(`/blogs/${blog._id}`).expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.data._id).toBe(blog._id.toString());

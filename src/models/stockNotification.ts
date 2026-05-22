@@ -29,7 +29,7 @@ const stockNotificationSchema = new Schema<IStockNotification>(
     },
     {
         timestamps: true,
-    }
+    },
 );
 
 export default mongoose.model<IStockNotification>('StockNotification', stockNotificationSchema);

@@ -39,7 +39,15 @@ describe('controllers/orderController', () => {
             body: {
                 items: [{ serviceId: '1', name: 'A', price: 1, quantity: 1 }],
                 total: 1,
-                shippingAddress: { street: 's', city: 'c', district: 'd', division: 'd', postalCode: '1', country: 'x', phone: '1' },
+                shippingAddress: {
+                    street: 's',
+                    city: 'c',
+                    district: 'd',
+                    division: 'd',
+                    postalCode: '1',
+                    country: 'x',
+                    phone: '1',
+                },
             },
             user: { email: 'user@example.com', role: 'user' },
         };

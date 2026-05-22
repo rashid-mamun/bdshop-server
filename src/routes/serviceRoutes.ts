@@ -1,6 +1,10 @@
 import express from 'express';
 import serviceController from '../controllers/serviceController';
-import { validateService, validateServiceUpdate, validateServiceQuery } from '../middleware/validation';
+import {
+    validateService,
+    validateServiceUpdate,
+    validateServiceQuery,
+} from '../middleware/validation';
 import { createStockNotification } from '../controllers/stockNotificationController';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 import { apiRateLimiter, searchRateLimiter } from '../middleware/rateLimiter';

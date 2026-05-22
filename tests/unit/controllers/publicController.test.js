@@ -28,7 +28,9 @@ describe('controllers/publicController', () => {
     });
 
     it('should return 404 when team member not found', async () => {
-        publicService.default.getTeamMemberById.mockRejectedValue(new Error('Team member not found'));
+        publicService.default.getTeamMemberById.mockRejectedValue(
+            new Error('Team member not found'),
+        );
         const req = { params: { id: 'missing' } };
         const res = createMockRes();
 

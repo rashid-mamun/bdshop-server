@@ -452,7 +452,7 @@ describe('API Endpoints - Route Testing', () => {
 
             for (const endpoint of protectedEndpoints) {
                 const response = await request(app)
-                [endpoint.method.toLowerCase()](endpoint.path)
+                    [endpoint.method.toLowerCase()](endpoint.path)
                     .expect(STATUS_CODES.UNAUTHORIZED);
 
                 expect(response.body).toHaveProperty('success', false);

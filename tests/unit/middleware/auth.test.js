@@ -3,11 +3,7 @@ jest.mock('jsonwebtoken', () => ({
 }));
 
 const jwt = require('jsonwebtoken');
-const {
-    authenticateToken,
-    requireAdmin,
-    optionalAuth,
-} = require('../../../src/middleware/auth');
+const { authenticateToken, requireAdmin, optionalAuth } = require('../../../src/middleware/auth');
 const { ERROR_MESSAGES } = require('../../../src/constants/messages');
 const { createMockRes } = require('../helpers/mockResponse');
 
