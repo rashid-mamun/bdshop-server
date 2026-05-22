@@ -1,21 +1,23 @@
 const request = require('supertest');
-const app = require('../../src/app');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 
 describe('API Endpoints - Route Testing', () => {
     describe('User Endpoints', () => {
-        describe('POST /api/users', () => {
+        describe('POST /api/users/register', () => {
             it('should accept user creation request', async () => {
                 const userData = {
                     email: 'invalid-email', // Invalid email to trigger validation error
                     displayName: 'Test User',
                     password: 'password123',
+                    phone: '+8801000000010',
                     district: 'Dhaka',
-                    division: 'Dhaka'
+                    division: 'Dhaka',
                 };
 
                 const response = await request(app)
-                    .post('/api/users')
+                    .post('/api/users/register')
                     .send(userData)
                     .expect(STATUS_CODES.BAD_REQUEST); // Will fail validation but route exists
 
@@ -24,7 +26,7 @@ describe('API Endpoints - Route Testing', () => {
 
             it('should validate required fields', async () => {
                 const response = await request(app)
-                    .post('/api/users')
+                    .post('/api/users/register')
                     .send({})
                     .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -37,7 +39,7 @@ describe('API Endpoints - Route Testing', () => {
             it('should handle user lookup by email', async () => {
                 const response = await request(app)
                     .get('/api/users/test@example.com')
-                    .expect(STATUS_CODES.NOT_FOUND); // Non-existent user should return 404
+                    .expect(STATUS_CODES.UNAUTHORIZED); // User lookup is protected
 
                 expect(response.body).toHaveProperty('success', false);
             });
@@ -88,9 +90,7 @@ describe('API Endpoints - Route Testing', () => {
     describe('Service Endpoints', () => {
         describe('GET /api/services', () => {
             it('should return services list', async () => {
-                const response = await request(app)
-                    .get('/api/services')
-                    .expect(STATUS_CODES.OK);
+                const response = await request(app).get('/api/services').expect(STATUS_CODES.OK);
 
                 expect(response.body).toHaveProperty('success', true);
                 expect(response.body).toHaveProperty('data');
@@ -148,7 +148,7 @@ describe('API Endpoints - Route Testing', () => {
                 const serviceData = {
                     name: 'Test Service',
                     price: 1000,
-                    category: 'electronics'
+                    category: 'electronics',
                 };
 
                 const response = await request(app)
@@ -192,16 +192,16 @@ describe('API Endpoints - Route Testing', () => {
                             serviceId: 'test-service-id',
                             name: 'Test Service',
                             price: 1000,
-                            quantity: 2
-                        }
+                            quantity: 2,
+                        },
                     ],
                     total: 2000,
                     shippingAddress: {
                         street: 'Test Street',
                         city: 'Dhaka',
                         postalCode: '1200',
-                        country: 'Bangladesh'
-                    }
+                        country: 'Bangladesh',
+                    },
                 };
 
                 const response = await request(app)
@@ -282,7 +282,7 @@ describe('API Endpoints - Route Testing', () => {
                     serviceId: 'test-service-id',
                     name: 'Test Service',
                     price: 1000,
-                    quantity: 2
+                    quantity: 2,
                 };
 
                 const response = await request(app)
@@ -349,9 +349,7 @@ describe('API Endpoints - Route Testing', () => {
     describe('Review Endpoints', () => {
         describe('GET /api/reviews', () => {
             it('should return reviews list', async () => {
-                const response = await request(app)
-                    .get('/api/reviews')
-                    .expect(STATUS_CODES.OK);
+                const response = await request(app).get('/api/reviews').expect(STATUS_CODES.OK);
 
                 expect(response.body).toHaveProperty('success', true);
                 expect(response.body).toHaveProperty('data');
@@ -392,7 +390,7 @@ describe('API Endpoints - Route Testing', () => {
                     serviceId: 'test-service-id',
                     rating: 4,
                     comment: 'Great service!',
-                    userName: 'Test User'
+                    userName: 'Test User',
                 };
 
                 const response = await request(app)
@@ -449,7 +447,7 @@ describe('API Endpoints - Route Testing', () => {
                 { method: 'GET', path: '/api/orders' },
                 { method: 'POST', path: '/api/orders' },
                 { method: 'PUT', path: '/api/reviews/test-id' },
-                { method: 'DELETE', path: '/api/reviews/test-id' }
+                { method: 'DELETE', path: '/api/reviews/test-id' },
             ];
 
             for (const endpoint of protectedEndpoints) {
@@ -476,14 +474,14 @@ describe('API Endpoints - Route Testing', () => {
     describe('Rate Limiting', () => {
         it('should apply rate limiting to endpoints', async () => {
             // Make multiple requests to trigger rate limiting
-            const promises = Array(20).fill().map(() =>
-                request(app).get('/api/services')
-            );
+            const promises = Array(20)
+                .fill()
+                .map(() => request(app).get('/api/services'));
 
             const responses = await Promise.all(promises);
 
             // Check if any requests were rate limited
-            const rateLimitedResponses = responses.filter(res => res.status === 429);
+            const rateLimitedResponses = responses.filter((res) => res.status === 429);
             expect(rateLimitedResponses.length).toBeGreaterThanOrEqual(0);
         });
     });
@@ -513,9 +511,7 @@ describe('API Endpoints - Route Testing', () => {
 
     describe('Security Headers', () => {
         it('should include security headers from Helmet', async () => {
-            const response = await request(app)
-                .get('/api/services')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/api/services').expect(STATUS_CODES.OK);
 
             expect(response.headers['x-content-type-options']).toBe('nosniff');
             expect(response.headers['x-frame-options']).toBeDefined();
@@ -535,7 +531,7 @@ describe('API Endpoints - Route Testing', () => {
 
         it('should handle malformed JSON gracefully', async () => {
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .set('Content-Type', 'application/json')
                 .send('{"invalid": json}')
                 .expect(STATUS_CODES.BAD_REQUEST);
@@ -551,4 +547,4 @@ describe('API Endpoints - Route Testing', () => {
             expect(response.body).toHaveProperty('success', false);
         });
     });
-}); 
+});

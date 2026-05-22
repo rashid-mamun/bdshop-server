@@ -1,14 +1,13 @@
 const request = require('supertest');
-const app = require('../../src/app');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
 describe('Health Check Endpoints', () => {
     describe('GET /health', () => {
         it('should return server status with 200 status code', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             expect(response.body).toHaveProperty('success', true);
             expect(response.body).toHaveProperty('message', SUCCESS_MESSAGES.SERVER_HEALTHY);
@@ -18,21 +17,19 @@ describe('Health Check Endpoints', () => {
         });
 
         it('should return proper headers', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             expect(response.headers['content-type']).toMatch(/application\/json/);
         });
 
         it('should handle multiple concurrent requests', async () => {
-            const promises = Array(5).fill().map(() =>
-                request(app).get('/health').expect(STATUS_CODES.OK)
-            );
+            const promises = Array(5)
+                .fill()
+                .map(() => request(app).get('/health').expect(STATUS_CODES.OK));
 
             const responses = await Promise.all(promises);
 
-            responses.forEach(response => {
+            responses.forEach((response) => {
                 expect(response.body.success).toBe(true);
                 expect(response.body.message).toBe(SUCCESS_MESSAGES.SERVER_HEALTHY);
             });
@@ -41,9 +38,7 @@ describe('Health Check Endpoints', () => {
 
     describe('GET / (Root endpoint)', () => {
         it('should return welcome message', async () => {
-            const response = await request(app)
-                .get('/')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/').expect(STATUS_CODES.OK);
 
             expect(response.body).toHaveProperty('success', true);
             expect(response.body.message).toContain('BdShop Server API');
@@ -73,7 +68,7 @@ describe('Health Check Endpoints', () => {
     describe('Error Handling', () => {
         it('should handle malformed JSON gracefully', async () => {
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .set('Content-Type', 'application/json')
                 .send('{"invalid": json}')
                 .expect(STATUS_CODES.BAD_REQUEST);
@@ -85,7 +80,7 @@ describe('Health Check Endpoints', () => {
             const largePayload = { data: 'x'.repeat(1000000) }; // 1MB payload
 
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .send(largePayload)
                 .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -118,11 +113,9 @@ describe('Health Check Endpoints', () => {
 
     describe('Request Logging', () => {
         it('should log requests properly', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             expect(response.body).toHaveProperty('success', true);
         });
     });
-}); 
+});

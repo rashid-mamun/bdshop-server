@@ -13,6 +13,9 @@ tests/
 │   ├── orders.test.js     # Order management endpoint tests
 │   ├── carts.test.js      # Shopping cart endpoint tests
 │   ├── reviews.test.js    # Review system endpoint tests
+│   ├── addresses.test.js  # Address management endpoint tests
+│   ├── auth.test.js       # Social auth endpoint tests
+│   ├── upload.test.js     # File upload endpoint tests
 │   └── public.test.js     # Public endpoint tests
 ├── unit/                  # Unit tests (to be implemented)
 ├── e2e/                   # End-to-end tests (to be implemented)
@@ -27,6 +30,7 @@ tests/
 ### Integration Tests
 
 #### 1. Health Tests (`health.test.js`)
+
 - ✅ Server health status
 - ✅ Root endpoint functionality
 - ✅ CORS headers
@@ -35,6 +39,7 @@ tests/
 - ✅ Security headers
 
 #### 2. User Tests (`users.test.js`)
+
 - ✅ User creation
 - ✅ User retrieval by email
 - ✅ User listing with pagination
@@ -47,6 +52,7 @@ tests/
 - ✅ Input validation
 
 #### 3. Service Tests (`services.test.js`)
+
 - ✅ Service creation (admin only)
 - ✅ Service listing with pagination
 - ✅ Service retrieval by ID
@@ -59,6 +65,7 @@ tests/
 - ✅ Authentication and authorization
 
 #### 4. Order Tests (`orders.test.js`)
+
 - ✅ Order creation
 - ✅ Order listing with pagination
 - ✅ Order retrieval by ID
@@ -69,6 +76,7 @@ tests/
 - ✅ Authentication and authorization
 
 #### 5. Cart Tests (`carts.test.js`)
+
 - ✅ Add items to cart
 - ✅ Retrieve user cart
 - ✅ Update cart item quantities
@@ -80,6 +88,7 @@ tests/
 - ✅ Authentication required
 
 #### 6. Review Tests (`reviews.test.js`)
+
 - ✅ Review creation
 - ✅ Review listing with pagination
 - ✅ Review retrieval by ID
@@ -91,6 +100,7 @@ tests/
 - ✅ Authentication required
 
 #### 7. Public Tests (`public.test.js`)
+
 - ✅ Public service access
 - ✅ Public review access
 - ✅ CORS handling
@@ -100,26 +110,46 @@ tests/
 - ✅ Error handling
 - ✅ API versioning
 
+#### 8. Address Tests (`addresses.test.js`)
+
+- ✅ Address CRUD
+- ✅ Default address behavior
+- ✅ Authentication required
+
+#### 9. Auth Tests (`auth.test.js`)
+
+- ✅ Google OAuth login
+- ✅ Facebook OAuth login
+- ✅ Token validation errors
+
+#### 10. Upload Tests (`upload.test.js`)
+
+- ✅ Admin-only access
+- ✅ Missing file validation
+- ✅ Successful upload response
+
 ## Running Tests
 
 ### Prerequisites
 
 1. **Database Setup**: Ensure you have a test database configured
-   ```bash
-   # Set test database environment variable
-   export MONGODB_URI_TEST=mongodb://localhost:27017/bdshop_test
-   ```
+
+    ```bash
+    # Set test database environment variable
+    export MONGODB_URI_TEST=mongodb://localhost:27017/bdshop_test
+    ```
 
 2. **Environment Variables**: Create a `.env.test` file for test-specific configuration
-   ```env
-   NODE_ENV=test
-   MONGODB_URI_TEST=mongodb://localhost:27017/bdshop_test
-   JWT_SECRET=test-secret-key
-   ```
+    ```env
+    NODE_ENV=test
+    MONGODB_URI_TEST=mongodb://localhost:27017/bdshop_test
+    JWT_SECRET=test-secret-key
+    ```
 
 ### Test Commands
 
 #### Run All Tests
+
 ```bash
 # Run all integration tests with comprehensive reporting
 npm run test:integration:all
@@ -129,6 +159,7 @@ npm test
 ```
 
 #### Run Specific Test Suites
+
 ```bash
 # Health checks
 npm run test:integration:health
@@ -150,9 +181,19 @@ npm run test:integration:reviews
 
 # Public endpoints
 npm run test:integration:public
+
+# Address endpoints
+npm run test:integration:addresses
+
+# Auth endpoints
+npm run test:integration:auth
+
+# Upload endpoints
+npm run test:integration:upload
 ```
 
 #### Development Commands
+
 ```bash
 # Watch mode for development
 npm run test:watch
@@ -183,33 +224,21 @@ The Jest configuration is defined in `package.json`:
 
 ```json
 {
-  "jest": {
-    "testEnvironment": "node",
-    "testTimeout": 15000,
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!node_modules/**",
-      "!tests/**",
-      "!coverage/**"
-    ],
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/tests/setup.js"
-    ],
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ]
-  }
+    "jest": {
+        "testEnvironment": "node",
+        "testTimeout": 15000,
+        "collectCoverageFrom": ["**/*.js", "!node_modules/**", "!tests/**", "!coverage/**"],
+        "coverageReporters": ["text", "lcov", "html"],
+        "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+        "testMatch": ["**/tests/**/*.test.js"]
+    }
 }
 ```
 
 ### Test Setup (`setup.js`)
 
 The test setup file handles:
+
 - Database connection for tests
 - Test environment configuration
 - Global test utilities
@@ -225,7 +254,7 @@ Each test suite includes proper database cleanup:
 beforeAll(async () => {
     // Connect to test database
     await mongoose.connect(process.env.MONGODB_URI_TEST);
-    
+
     // Clear test data
     await User.deleteMany({});
     await Service.deleteMany({});
@@ -252,7 +281,7 @@ testUser = new User({
     password: 'password123',
     district: 'Dhaka',
     division: 'Dhaka',
-    role: 'user'
+    role: 'user',
 });
 await testUser.save();
 ```
@@ -268,7 +297,7 @@ Tests that require authentication create and use JWT tokens:
 const authToken = jwt.sign(
     { id: testUser._id, email: testUser.email, role: testUser.role },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '1h' },
 );
 
 // Use token in requests
@@ -305,7 +334,7 @@ it('should return 400 for invalid email format', async () => {
         displayName: 'Test User',
         password: 'password123',
         district: 'Dhaka',
-        division: 'Dhaka'
+        division: 'Dhaka',
     };
 
     const response = await request(app)
@@ -368,7 +397,7 @@ Tests verify consistent error message format:
 expect(response.body).toMatchObject({
     success: false,
     error: expect.any(String),
-    timestamp: expect.any(String)
+    timestamp: expect.any(String),
 });
 ```
 
@@ -380,12 +409,12 @@ Tests verify rate limiting functionality:
 
 ```javascript
 it('should apply rate limiting to endpoints', async () => {
-    const promises = Array(150).fill().map(() =>
-        request(app).get('/health')
-    );
+    const promises = Array(150)
+        .fill()
+        .map(() => request(app).get('/health'));
 
     const responses = await Promise.all(promises);
-    const rateLimitedResponses = responses.filter(res => res.status === 429);
+    const rateLimitedResponses = responses.filter((res) => res.status === 429);
     expect(rateLimitedResponses.length).toBeGreaterThan(0);
 });
 ```
@@ -400,13 +429,14 @@ The test suite is designed to work with CI/CD pipelines:
 # Example GitHub Actions workflow
 - name: Run Tests
   run: |
-    npm run test:integration:all
-    npm run test:coverage
+      npm run test:integration:all
+      npm run test:coverage
 ```
 
 ### Exit Codes
 
 Tests use proper exit codes for CI integration:
+
 - `0`: All tests passed
 - `1`: Tests failed or errors occurred
 
@@ -477,4 +507,4 @@ Run coverage report to check current status:
 
 ```bash
 npm run test:coverage
-``` 
+```

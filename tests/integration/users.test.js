@@ -1,11 +1,14 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../../src/app');
-const User = require('../../src/models/user');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const userModule = require('../../src/models/user');
+const User = userModule.default || userModule.User || userModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 const jwt = require('jsonwebtoken');
 const TEST_JWT_SECRET = 'test-secret-key';
+const TEST_JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-secret-key';
 const { VALIDATION_MESSAGES } = require('../../src/constants/messages');
 
 describe('User Endpoints', () => {
@@ -22,9 +25,10 @@ describe('User Endpoints', () => {
             email: 'test@example.com',
             displayName: 'Test User',
             password: 'password123',
+            phone: '+8801000000001',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'user'
+            role: 'user',
         });
         await testUser.save();
 
@@ -32,9 +36,10 @@ describe('User Endpoints', () => {
             email: 'admin@example.com',
             displayName: 'Admin User',
             password: 'password123',
+            phone: '+8801000000002',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'admin'
+            role: 'admin',
         });
         await adminUser.save();
 
@@ -46,19 +51,20 @@ describe('User Endpoints', () => {
         await User.deleteMany({});
     });
 
-    describe('POST /api/users', () => {
+    describe('POST /api/users/register', () => {
         it('should create a new user successfully', async () => {
             const userData = {
                 email: 'newuser@example.com',
                 displayName: 'New User',
                 password: 'password123',
+                phone: '+8801000000003',
                 district: 'Chittagong',
                 division: 'Chittagong',
-                role: 'user'
+                role: 'user',
             };
 
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .send(userData)
                 .expect(STATUS_CODES.CREATED);
 
@@ -74,12 +80,13 @@ describe('User Endpoints', () => {
                 email: 'invalid-email',
                 displayName: 'Test User',
                 password: 'password123',
+                phone: '+8801000000004',
                 district: 'Dhaka',
-                division: 'Dhaka'
+                division: 'Dhaka',
             };
 
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .send(userData)
                 .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -90,12 +97,12 @@ describe('User Endpoints', () => {
         it('should return 400 for missing required fields', async () => {
             const userData = {
                 email: 'test@example.com',
-                displayName: 'Test User'
+                displayName: 'Test User',
                 // Missing password, district, division
             };
 
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .send(userData)
                 .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -107,12 +114,13 @@ describe('User Endpoints', () => {
                 email: 'test@example.com', // Already exists
                 displayName: 'Another User',
                 password: 'password123',
+                phone: '+8801000000005',
                 district: 'Dhaka',
-                division: 'Dhaka'
+                division: 'Dhaka',
             };
 
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .send(userData)
                 .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -124,6 +132,7 @@ describe('User Endpoints', () => {
         it('should get user by email successfully', async () => {
             const response = await request(app)
                 .get(`/api/users/${testUser.email}`)
+                .set('Authorization', `Bearer ${authToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
@@ -136,6 +145,7 @@ describe('User Endpoints', () => {
         it('should return 404 for non-existent user', async () => {
             const response = await request(app)
                 .get('/api/users/nonexistent@example.com')
+                .set('Authorization', `Bearer ${adminToken}`)
                 .expect(STATUS_CODES.NOT_FOUND);
 
             expect(response.body.success).toBe(false);
@@ -145,10 +155,96 @@ describe('User Endpoints', () => {
         it('should return admin status correctly', async () => {
             const response = await request(app)
                 .get(`/api/users/${adminUser.email}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.data.admin).toBe(true);
+        });
+    });
+
+    describe('POST /api/users/login', () => {
+        it('should login successfully with valid credentials', async () => {
+            const response = await request(app)
+                .post('/api/users/login')
+                .send({ email: testUser.email, password: 'password123' })
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe('Login successful');
+            expect(response.body.data.email).toBe(testUser.email);
+            expect(response.headers['set-cookie']).toBeDefined();
+        });
+
+        it('should return 401 for invalid credentials', async () => {
+            const response = await request(app)
+                .post('/api/users/login')
+                .send({ email: testUser.email, password: 'wrong-password' })
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Invalid credentials');
+        });
+
+        it('should return 400 for missing credentials', async () => {
+            const response = await request(app)
+                .post('/api/users/login')
+                .send({ email: testUser.email })
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('POST /api/users/logout', () => {
+        it('should clear auth cookies', async () => {
+            const response = await request(app)
+                .post('/api/users/logout')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            const cookies = response.headers['set-cookie'] || [];
+            const cookieString = cookies.join(';');
+            expect(cookieString).toContain('accessToken=');
+            expect(cookieString).toContain('refreshToken=');
+        });
+    });
+
+    describe('POST /api/users/refresh', () => {
+        it('should refresh tokens with valid refresh token cookie', async () => {
+            const refreshToken = jwt.sign(
+                { id: testUser._id, email: testUser.email, role: testUser.role },
+                TEST_JWT_REFRESH_SECRET,
+                { expiresIn: '1h' },
+            );
+
+            const response = await request(app)
+                .post('/api/users/refresh')
+                .set('Cookie', [`refreshToken=${refreshToken}`])
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe('Token refreshed successfully');
+            expect(response.headers['set-cookie']).toBeDefined();
+        });
+
+        it('should return 401 for missing refresh token', async () => {
+            const response = await request(app)
+                .post('/api/users/refresh')
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Refresh token missing');
+        });
+
+        it('should return 401 for invalid refresh token', async () => {
+            const response = await request(app)
+                .post('/api/users/refresh')
+                .set('Cookie', ['refreshToken=invalid-token'])
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Invalid refresh token');
         });
     });
 
@@ -173,7 +269,7 @@ describe('User Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.users.every(user => user.role === 'admin')).toBe(true);
+            expect(response.body.data.users.every((user) => user.role === 'admin')).toBe(true);
         });
 
         it('should filter users by division', async () => {
@@ -183,13 +279,11 @@ describe('User Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.users.every(user => user.division === 'Dhaka')).toBe(true);
+            expect(response.body.data.users.every((user) => user.division === 'Dhaka')).toBe(true);
         });
 
         it('should return 401 without authentication', async () => {
-            const response = await request(app)
-                .get('/api/users')
-                .expect(STATUS_CODES.UNAUTHORIZED);
+            const response = await request(app).get('/api/users').expect(STATUS_CODES.UNAUTHORIZED);
 
             expect(response.body.success).toBe(false);
         });
@@ -200,7 +294,7 @@ describe('User Endpoints', () => {
             const updateData = {
                 email: testUser.email,
                 displayName: 'Updated User Name',
-                district: 'Updated District'
+                district: 'Updated District',
             };
 
             const response = await request(app)
@@ -217,7 +311,7 @@ describe('User Endpoints', () => {
         it('should return 400 for invalid email in update', async () => {
             const updateData = {
                 email: 'invalid-email',
-                displayName: 'Updated Name'
+                displayName: 'Updated Name',
             };
 
             const response = await request(app)
@@ -279,7 +373,7 @@ describe('User Endpoints', () => {
                 displayName: 'Delete User',
                 password: 'password123',
                 district: 'Dhaka',
-                division: 'Dhaka'
+                division: 'Dhaka',
             });
             await userToDelete.save();
 
@@ -336,7 +430,7 @@ describe('User Endpoints', () => {
         it('should update current user profile', async () => {
             const updateData = {
                 displayName: 'Updated Profile Name',
-                district: 'Updated District'
+                district: 'Updated District',
             };
 
             const response = await request(app)
@@ -360,6 +454,39 @@ describe('User Endpoints', () => {
         });
     });
 
+    describe('PUT /api/users/change-password', () => {
+        it('should change password successfully', async () => {
+            const response = await request(app)
+                .put('/api/users/change-password')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ currentPassword: 'password123', newPassword: 'newpass123' })
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.message).toBe('Password changed successfully');
+        });
+
+        it('should reject same new password as current', async () => {
+            const response = await request(app)
+                .put('/api/users/change-password')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ currentPassword: 'password123', newPassword: 'password123' })
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('New password cannot be the same as current password');
+        });
+
+        it('should return 401 without authentication', async () => {
+            const response = await request(app)
+                .put('/api/users/change-password')
+                .send({ currentPassword: 'password123', newPassword: 'newpass123' })
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
     describe('PUT /api/users/:email/deactivate', () => {
         it('should deactivate user successfully', async () => {
             const userToDeactivate = new User({
@@ -367,7 +494,7 @@ describe('User Endpoints', () => {
                 displayName: 'Deactivate User',
                 password: 'password123',
                 district: 'Dhaka',
-                division: 'Dhaka'
+                division: 'Dhaka',
             });
             await userToDeactivate.save();
 
@@ -398,7 +525,7 @@ describe('User Endpoints', () => {
                 password: 'password123',
                 district: 'Dhaka',
                 division: 'Dhaka',
-                isActive: false
+                isActive: false,
             });
             await userToReactivate.save();
 
@@ -420,4 +547,4 @@ describe('User Endpoints', () => {
             expect(response.body.success).toBe(false);
         });
     });
-}); 
+});

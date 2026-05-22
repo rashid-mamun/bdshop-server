@@ -1,10 +1,14 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const app = require('../../src/app');
-const Review = require('../../src/models/reviews');
-const User = require('../../src/models/user');
-const Service = require('../../src/models/services');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const reviewModule = require('../../src/models/reviews');
+const Review = reviewModule.default || reviewModule.Review || reviewModule;
+const userModule = require('../../src/models/user');
+const User = userModule.default || userModule.User || userModule;
+const serviceModule = require('../../src/models/services');
+const Service = serviceModule.default || serviceModule.Service || serviceModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
@@ -28,12 +32,16 @@ describe('Review Endpoints', () => {
             password: 'password123',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'user'
+            role: 'user',
         });
         await testUser.save();
 
         // Generate JWT token for test user
-        authToken = jwt.sign({ id: testUser._id, email: testUser.email, role: testUser.role }, TEST_JWT_SECRET, { expiresIn: '1h' });
+        authToken = jwt.sign(
+            { id: testUser._id, email: testUser.email, role: testUser.role },
+            TEST_JWT_SECRET,
+            { expiresIn: '1h' },
+        );
 
         // Create test service
         testService = new Service({
@@ -44,7 +52,7 @@ describe('Review Endpoints', () => {
             description: 'Test service description',
             config: 'Test configuration',
             category: 'electronics',
-            madeIn: 'Bangladesh'
+            madeIn: 'Bangladesh',
         });
         await testService.save();
 
@@ -57,7 +65,7 @@ describe('Review Endpoints', () => {
             img: testService.img,
             description: 'Great service! Highly recommended.',
             star: 4,
-            date: new Date()
+            date: new Date(),
         });
         await testReview.save();
     });
@@ -78,7 +86,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Excellent service quality!',
                 star: 5,
-                date: new Date()
+                date: new Date(),
             };
 
             const response = await request(app)
@@ -99,7 +107,7 @@ describe('Review Endpoints', () => {
                 email: testUser.email,
                 title: 'Great Service',
                 // Missing name, img, star (required fields)
-                description: 'Great service! Highly recommended.'
+                description: 'Great service! Highly recommended.',
             };
 
             const response = await request(app)
@@ -119,7 +127,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Great service! Highly recommended.',
                 star: 6, // Invalid rating (should be 1-5)
-                date: new Date()
+                date: new Date(),
             };
 
             const response = await request(app)
@@ -139,7 +147,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Great service! Highly recommended.',
                 star: 0, // Invalid rating (should be 1-5)
-                date: new Date()
+                date: new Date(),
             };
 
             const response = await request(app)
@@ -177,7 +185,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Great service! Highly recommended.',
                 star: 4,
-                date: new Date()
+                date: new Date(),
             };
 
             const response = await request(app)
@@ -208,9 +216,11 @@ describe('Review Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.reviews.every(review =>
-                review.serviceId === testService._id.toString()
-            )).toBe(true);
+            expect(
+                response.body.data.reviews.every(
+                    (review) => review.serviceId === testService._id.toString(),
+                ),
+            ).toBe(true);
         });
 
         it('should filter reviews by email', async () => {
@@ -219,9 +229,9 @@ describe('Review Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.reviews.every(review =>
-                review.email === testUser.email
-            )).toBe(true);
+            expect(response.body.data.reviews).toHaveLength(1);
+            expect(response.body.data.reviews[0].serviceId).toBe(testService._id.toString());
+            expect(response.body.data.reviews[0]).not.toHaveProperty('email');
         });
 
         it('should filter reviews by rating', async () => {
@@ -230,9 +240,7 @@ describe('Review Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.reviews.every(review =>
-                review.rating === 4
-            )).toBe(true);
+            expect(response.body.data.reviews.every((review) => review.rating === 4)).toBe(true);
         });
 
         it('should handle pagination parameters', async () => {
@@ -257,6 +265,29 @@ describe('Review Endpoints', () => {
         });
     });
 
+    describe('GET /api/reviews/my-reviews', () => {
+        it('should return current user reviews', async () => {
+            const response = await request(app)
+                .get('/api/reviews/my-reviews')
+                .set('Authorization', `Bearer ${authToken}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data).toHaveProperty('reviews');
+            expect(
+                response.body.data.reviews.every((review) => review.email === testUser.email),
+            ).toBe(true);
+        });
+
+        it('should return 401 without authentication', async () => {
+            const response = await request(app)
+                .get('/api/reviews/my-reviews')
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
     describe('GET /api/reviews/:id', () => {
         it('should get review by ID successfully', async () => {
             const response = await request(app)
@@ -266,7 +297,7 @@ describe('Review Endpoints', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe(SUCCESS_MESSAGES.REVIEW_FETCHED);
             expect(response.body.data._id).toBe(testReview._id.toString());
-            expect(response.body.data.email).toBe(testReview.email);
+            expect(response.body.data).not.toHaveProperty('email');
             expect(response.body.data.star).toBe(testReview.star);
         });
 
@@ -293,7 +324,7 @@ describe('Review Endpoints', () => {
         it('should update review successfully', async () => {
             const updateData = {
                 star: 5,
-                description: 'Updated comment - even better service!'
+                description: 'Updated comment - even better service!',
             };
 
             const response = await request(app)
@@ -312,7 +343,7 @@ describe('Review Endpoints', () => {
             const fakeId = new mongoose.Types.ObjectId();
             const updateData = {
                 star: 5,
-                description: 'Updated comment'
+                description: 'Updated comment',
             };
 
             const response = await request(app)
@@ -328,7 +359,7 @@ describe('Review Endpoints', () => {
         it('should return 400 for invalid rating in update', async () => {
             const updateData = {
                 star: 6, // Invalid rating
-                description: 'Updated comment'
+                description: 'Updated comment',
             };
 
             const response = await request(app)
@@ -343,7 +374,7 @@ describe('Review Endpoints', () => {
         it('should return 401 without authentication', async () => {
             const updateData = {
                 star: 5,
-                description: 'Updated comment'
+                description: 'Updated comment',
             };
 
             const response = await request(app)
@@ -364,7 +395,7 @@ describe('Review Endpoints', () => {
                 title: 'Review to be deleted',
                 img: testService.img,
                 description: 'Review to be deleted',
-                star: 3
+                star: 3,
             });
             await reviewToDelete.save();
 
@@ -410,7 +441,7 @@ describe('Review Endpoints', () => {
                     title: 'Excellent Service Review',
                     img: testService.img,
                     description: 'Excellent service',
-                    star: 5
+                    star: 5,
                 }),
                 new Review({
                     name: 'User 2',
@@ -419,7 +450,7 @@ describe('Review Endpoints', () => {
                     title: 'Very Good Service Review',
                     img: testService.img,
                     description: 'Very good service',
-                    star: 4
+                    star: 4,
                 }),
                 new Review({
                     name: 'User 3',
@@ -428,8 +459,8 @@ describe('Review Endpoints', () => {
                     title: 'Good Service Review',
                     img: testService.img,
                     description: 'Good service',
-                    star: 3
-                })
+                    star: 3,
+                }),
             ];
             await Review.insertMany(reviews);
         });
@@ -458,7 +489,7 @@ describe('Review Endpoints', () => {
                 description: 'New service description',
                 config: 'New configuration',
                 category: 'electronics',
-                madeIn: 'Bangladesh'
+                madeIn: 'Bangladesh',
             });
             await newService.save();
 
@@ -479,7 +510,7 @@ describe('Review Endpoints', () => {
                 serviceId: testService._id,
                 rating: 4,
                 comment: 'Test comment',
-                userName: testUser.displayName
+                userName: testUser.displayName,
             };
 
             const response = await request(app)
@@ -497,7 +528,7 @@ describe('Review Endpoints', () => {
                 serviceId: 'invalid-id',
                 rating: 4,
                 comment: 'Test comment',
-                userName: testUser.displayName
+                userName: testUser.displayName,
             };
 
             const response = await request(app)
@@ -515,7 +546,7 @@ describe('Review Endpoints', () => {
                 serviceId: testService._id,
                 rating: 4,
                 comment: 'A', // Too short
-                userName: testUser.displayName
+                userName: testUser.displayName,
             };
 
             const response = await request(app)
@@ -533,7 +564,7 @@ describe('Review Endpoints', () => {
                 serviceId: testService._id,
                 rating: 7, // Out of range (1-5)
                 comment: 'Test comment',
-                userName: testUser.displayName
+                userName: testUser.displayName,
             };
 
             const response = await request(app)
@@ -558,7 +589,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'First review',
                 star: 4,
-                serviceId: testService._id
+                serviceId: testService._id,
             };
 
             // Create first review
@@ -589,9 +620,14 @@ describe('Review Endpoints', () => {
                 password: 'password123',
                 district: 'Dhaka',
                 division: 'Dhaka',
-                role: 'user'
+                role: 'user',
             });
             await newUser.save();
+            const newUserToken = jwt.sign(
+                { id: newUser._id, email: newUser.email, role: newUser.role },
+                TEST_JWT_SECRET,
+                { expiresIn: '1h' },
+            );
 
             const reviewData1 = {
                 name: testUser.displayName,
@@ -600,7 +636,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'First user review',
                 star: 4,
-                serviceId: testService._id
+                serviceId: testService._id,
             };
 
             const reviewData2 = {
@@ -610,7 +646,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Second user review',
                 star: 5,
-                serviceId: testService._id
+                serviceId: testService._id,
             };
 
             // Create first review
@@ -623,14 +659,16 @@ describe('Review Endpoints', () => {
             // Create second review from different user
             const response = await request(app)
                 .post('/api/reviews')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${newUserToken}`)
                 .send(reviewData2)
                 .expect(STATUS_CODES.CREATED);
 
             expect(response.body.success).toBe(true);
 
             // Verify both reviews exist
-            const allReviews = await Review.find({ email: { $in: [testUser.email, newUser.email] } });
+            const allReviews = await Review.find({
+                email: { $in: [testUser.email, newUser.email] },
+            });
             expect(allReviews).toHaveLength(2);
         });
 
@@ -645,7 +683,7 @@ describe('Review Endpoints', () => {
                 img: testService.img,
                 description: 'Test review for rating update',
                 star: 5,
-                serviceId: testService._id
+                serviceId: testService._id,
             };
 
             // Create review
@@ -661,4 +699,4 @@ describe('Review Endpoints', () => {
             expect(updatedService.reviewCount).toBe(1);
         });
     });
-}); 
+});

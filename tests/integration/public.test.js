@@ -1,5 +1,11 @@
 const request = require('supertest');
-const app = require('../../src/app');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const mongoose = require('mongoose');
+const blogModule = require('../../src/models/blogs');
+const Blog = blogModule.default || blogModule.Blog || blogModule;
+const teamModule = require('../../src/models/ourTeams');
+const TeamMember = teamModule.default || teamModule.OurTeam || teamModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
@@ -9,9 +15,7 @@ describe('Public Endpoints', () => {
 
     describe('GET /', () => {
         it('should return welcome message and API information', async () => {
-            const response = await request(app)
-                .get('/')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/').expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.message).toContain('BdShop Server API');
@@ -21,27 +25,23 @@ describe('Public Endpoints', () => {
         });
 
         it('should include all available endpoints', async () => {
-            const response = await request(app)
-                .get('/')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/').expect(STATUS_CODES.OK);
 
             const expectedEndpoints = [
                 '/api/users',
                 '/api/services',
                 '/api/orders',
                 '/api/carts',
-                '/api/reviews'
+                '/api/reviews',
             ];
 
-            expectedEndpoints.forEach(endpoint => {
+            expectedEndpoints.forEach((endpoint) => {
                 expect(response.body.endpoints).toContain(endpoint);
             });
         });
 
         it('should include documentation link', async () => {
-            const response = await request(app)
-                .get('/')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/').expect(STATUS_CODES.OK);
 
             expect(response.body).toHaveProperty('documentation');
             expect(response.body.documentation).toBe('/docs');
@@ -50,9 +50,7 @@ describe('Public Endpoints', () => {
 
     describe('GET /health', () => {
         it('should return server health status', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe(SUCCESS_MESSAGES.SERVER_HEALTHY);
@@ -62,9 +60,7 @@ describe('Public Endpoints', () => {
         });
 
         it('should include proper timestamp format', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             const timestamp = new Date(response.body.timestamp);
             expect(timestamp instanceof Date).toBe(true);
@@ -72,24 +68,184 @@ describe('Public Endpoints', () => {
         });
 
         it('should handle multiple concurrent health checks', async () => {
-            const promises = Array(5).fill().map(() =>
-                request(app).get('/health').expect(STATUS_CODES.OK)
-            );
+            const promises = Array(5)
+                .fill()
+                .map(() => request(app).get('/health').expect(STATUS_CODES.OK));
 
             const responses = await Promise.all(promises);
 
-            responses.forEach(response => {
+            responses.forEach((response) => {
                 expect(response.body.success).toBe(true);
                 expect(response.body.message).toBe(SUCCESS_MESSAGES.SERVER_HEALTHY);
             });
         });
     });
 
+    describe('GET /blogs', () => {
+        beforeEach(async () => {
+            await Blog.deleteMany({});
+            await Blog.insertMany([
+                {
+                    title: 'Test Blog 1',
+                    img: 'blog1.jpg',
+                    description: 'Blog description 1',
+                    date: '2024-01-01',
+                    category: 'news',
+                },
+                {
+                    title: 'Test Blog 2',
+                    img: 'blog2.jpg',
+                    description: 'Blog description 2',
+                    date: '2024-01-02',
+                    category: 'tips',
+                },
+            ]);
+        });
+
+        afterEach(async () => {
+            await Blog.deleteMany({});
+        });
+
+        it('should return blogs with pagination', async () => {
+            const response = await request(app)
+                .get('/blogs?page=1&limit=1')
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data).toHaveProperty('blogs');
+            expect(response.body.data).toHaveProperty('pagination');
+            expect(response.body.data.blogs.length).toBe(1);
+        });
+    });
+
+    describe('GET /blogs/:id', () => {
+        let blog;
+
+        beforeEach(async () => {
+            await Blog.deleteMany({});
+            blog = await Blog.create({
+                title: 'Blog Detail',
+                img: 'blog-detail.jpg',
+                description: 'Blog detail description',
+                date: '2024-02-01',
+                category: 'news',
+            });
+        });
+
+        afterEach(async () => {
+            await Blog.deleteMany({});
+        });
+
+        it('should return blog by id', async () => {
+            const response = await request(app)
+                .get(`/blogs/${blog._id}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data._id).toBe(blog._id.toString());
+        });
+
+        it('should return 404 for non-existent blog', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .get(`/blogs/${fakeId}`)
+                .expect(STATUS_CODES.NOT_FOUND);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Blog not found');
+        });
+
+        it('should return 400 for invalid blog id format', async () => {
+            const response = await request(app)
+                .get('/blogs/invalid-id')
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Invalid blog ID format');
+        });
+    });
+
+    describe('GET /team', () => {
+        beforeEach(async () => {
+            await TeamMember.deleteMany({});
+            await TeamMember.insertMany([
+                {
+                    name: 'Team Member 1',
+                    img: 'member1.jpg',
+                    position: 'Developer',
+                    bio: 'Bio 1',
+                },
+                {
+                    name: 'Team Member 2',
+                    img: 'member2.jpg',
+                    position: 'Designer',
+                    bio: 'Bio 2',
+                },
+            ]);
+        });
+
+        afterEach(async () => {
+            await TeamMember.deleteMany({});
+        });
+
+        it('should return team members', async () => {
+            const response = await request(app).get('/team').expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.data.length).toBe(2);
+        });
+    });
+
+    describe('GET /team/:id', () => {
+        let teamMember;
+
+        beforeEach(async () => {
+            await TeamMember.deleteMany({});
+            teamMember = await TeamMember.create({
+                name: 'Team Member Detail',
+                img: 'member-detail.jpg',
+                position: 'Manager',
+                bio: 'Detail bio',
+            });
+        });
+
+        afterEach(async () => {
+            await TeamMember.deleteMany({});
+        });
+
+        it('should return team member by id', async () => {
+            const response = await request(app)
+                .get(`/team/${teamMember._id}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data._id).toBe(teamMember._id.toString());
+        });
+
+        it('should return 404 for non-existent team member', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .get(`/team/${fakeId}`)
+                .expect(STATUS_CODES.NOT_FOUND);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Team member not found');
+        });
+
+        it('should return 400 for invalid team member id format', async () => {
+            const response = await request(app)
+                .get('/team/invalid-id')
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Invalid team member ID format');
+        });
+    });
+
     describe('GET /api/services (Public Access)', () => {
         it('should allow public access to services list', async () => {
-            const response = await request(app)
-                .get('/api/services')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/api/services').expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe('Services fetched successfully');
@@ -149,9 +305,7 @@ describe('Public Endpoints', () => {
 
     describe('GET /api/reviews (Public Access)', () => {
         it('should allow public access to reviews list', async () => {
-            const response = await request(app)
-                .get('/api/reviews')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/api/reviews').expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe('Reviews fetched successfully');
@@ -214,9 +368,7 @@ describe('Public Endpoints', () => {
 
     describe('Security Headers', () => {
         it('should include security headers from Helmet', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             // Check for common security headers
             expect(response.headers['x-content-type-options']).toBe('nosniff');
@@ -225,9 +377,7 @@ describe('Public Endpoints', () => {
         });
 
         it('should include content-type header', async () => {
-            const response = await request(app)
-                .get('/health')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/health').expect(STATUS_CODES.OK);
 
             expect(response.headers['content-type']).toMatch(/application\/json/);
         });
@@ -245,7 +395,7 @@ describe('Public Endpoints', () => {
 
         it('should handle malformed JSON gracefully', async () => {
             const response = await request(app)
-                .post('/api/users')
+                .post('/api/users/register')
                 .set('Content-Type', 'application/json')
                 .send('{"invalid": json}')
                 .expect(STATUS_CODES.BAD_REQUEST);
@@ -264,14 +414,12 @@ describe('Public Endpoints', () => {
 
     describe('API Versioning', () => {
         it('should use correct API prefix', async () => {
-            const response = await request(app)
-                .get('/')
-                .expect(STATUS_CODES.OK);
+            const response = await request(app).get('/').expect(STATUS_CODES.OK);
 
             // Check that endpoints use the correct API prefix
-            response.body.endpoints.forEach(endpoint => {
+            response.body.endpoints.forEach((endpoint) => {
                 expect(endpoint).toMatch(/^\/api\//);
             });
         });
     });
-}); 
+});

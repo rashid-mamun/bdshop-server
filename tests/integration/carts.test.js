@@ -1,10 +1,14 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const app = require('../../src/app');
-const Cart = require('../../src/models/carts');
-const User = require('../../src/models/user');
-const Service = require('../../src/models/services');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const cartModule = require('../../src/models/carts');
+const Cart = cartModule.default || cartModule.Cart || cartModule;
+const userModule = require('../../src/models/user');
+const User = userModule.default || userModule.User || userModule;
+const serviceModule = require('../../src/models/services');
+const Service = serviceModule.default || serviceModule.Service || serviceModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
@@ -28,12 +32,16 @@ describe('Cart Endpoints', () => {
             password: 'password123',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'user'
+            role: 'user',
         });
         await testUser.save();
 
         // Generate JWT token for test user
-        authToken = jwt.sign({ id: testUser._id, email: testUser.email, role: testUser.role }, TEST_JWT_SECRET, { expiresIn: '1h' });
+        authToken = jwt.sign(
+            { id: testUser._id, email: testUser.email, role: testUser.role },
+            TEST_JWT_SECRET,
+            { expiresIn: '1h' },
+        );
 
         // Create test service
         testService = new Service({
@@ -44,7 +52,7 @@ describe('Cart Endpoints', () => {
             description: 'Test service description',
             config: 'Test configuration',
             category: 'electronics',
-            madeIn: 'Bangladesh'
+            madeIn: 'Bangladesh',
         });
         await testService.save();
 
@@ -57,7 +65,7 @@ describe('Cart Endpoints', () => {
             model: testService.model,
             price: testService.price,
             config: testService.config,
-            quantity: 2
+            quantity: 2,
         });
         await testCart.save();
     });
@@ -78,7 +86,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const response = await request(app)
@@ -88,7 +96,7 @@ describe('Cart Endpoints', () => {
                 .expect(STATUS_CODES.CREATED);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Item added to cart successfully");
+            expect(response.body.message).toBe('Item added to cart successfully');
             expect(response.body.data.email).toBe(cartData.email);
             expect(response.body.data.id).toBe(cartData.id);
             expect(response.body.data.quantity).toBe(cartData.quantity);
@@ -104,7 +112,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 3
+                quantity: 3,
             };
 
             // First add
@@ -122,13 +130,13 @@ describe('Cart Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Cart updated successfully");
+            expect(response.body.message).toBe('Cart updated successfully');
             expect(response.body.data.quantity).toBe(6); // 3 + 3 = 6 (cumulative)
         });
 
         it('should return 400 for missing required fields', async () => {
             const cartData = {
-                email: testUser.email
+                email: testUser.email,
                 // Missing serviceId, name, price, quantity
             };
 
@@ -150,7 +158,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 0 // Invalid quantity
+                quantity: 0, // Invalid quantity
             };
 
             const response = await request(app)
@@ -171,7 +179,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: -100, // Invalid negative price
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const response = await request(app)
@@ -192,7 +200,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const response = await request(app)
@@ -212,7 +220,7 @@ describe('Cart Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Success");
+            expect(response.body.message).toBe('Success');
             expect(Array.isArray(response.body.data)).toBe(true);
             expect(response.body.data.length).toBeGreaterThan(0);
             expect(response.body.data[0].email).toBe(testUser.email);
@@ -225,13 +233,18 @@ describe('Cart Endpoints', () => {
                 password: 'password123',
                 district: 'Dhaka',
                 division: 'Dhaka',
-                role: 'user'
+                role: 'user',
             });
             await newUser.save();
+            const newUserToken = jwt.sign(
+                { id: newUser._id, email: newUser.email, role: newUser.role },
+                TEST_JWT_SECRET,
+                { expiresIn: '1h' },
+            );
 
             const response = await request(app)
                 .get(`/api/carts/${newUser.email}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${newUserToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
@@ -250,7 +263,7 @@ describe('Cart Endpoints', () => {
     describe('PUT /api/carts/:id', () => {
         it('should update cart item quantity successfully', async () => {
             const updateData = {
-                quantity: 5
+                quantity: 5,
             };
 
             const response = await request(app)
@@ -258,17 +271,17 @@ describe('Cart Endpoints', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .send(updateData);
             if (response.status !== STATUS_CODES.OK) {
-                console.log('Update cart item failed:', response.body);
+                logger.info('Update cart item failed:', response.body);
             }
             expect(response.status).toBe(STATUS_CODES.OK);
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Cart updated successfully");
+            expect(response.body.message).toBe('Cart updated successfully');
             expect(response.body.data.quantity).toBe(updateData.quantity);
         });
 
         it('should return 400 for invalid quantity', async () => {
             const updateData = {
-                quantity: 0
+                quantity: 0,
             };
 
             const response = await request(app)
@@ -283,7 +296,7 @@ describe('Cart Endpoints', () => {
         it('should return 404 for non-existent cart item', async () => {
             const fakeId = new mongoose.Types.ObjectId();
             const updateData = {
-                quantity: 3
+                quantity: 3,
             };
 
             const response = await request(app)
@@ -298,7 +311,7 @@ describe('Cart Endpoints', () => {
 
         it('should return 401 without authentication', async () => {
             const updateData = {
-                quantity: 3
+                quantity: 3,
             };
 
             const response = await request(app)
@@ -320,7 +333,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             });
             await cartToDelete.save();
 
@@ -330,7 +343,7 @@ describe('Cart Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Item removed from cart successfully");
+            expect(response.body.message).toBe('Item removed from cart successfully');
         });
 
         it('should return 404 for non-existent cart item', async () => {
@@ -364,7 +377,7 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 1000,
-                    quantity: 2
+                    quantity: 2,
                 }),
                 new Cart({
                     id: 'test-product-' + Date.now() + Math.random(),
@@ -373,8 +386,8 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 500,
-                    quantity: 1
-                })
+                    quantity: 1,
+                }),
             ];
             await Cart.insertMany(cartItems);
 
@@ -384,7 +397,7 @@ describe('Cart Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.message).toBe("Cart cleared successfully");
+            expect(response.body.message).toBe('Cart cleared successfully');
             expect(response.body.data.deletedCount).toBeGreaterThan(0);
 
             // Verify cart is empty
@@ -403,13 +416,18 @@ describe('Cart Endpoints', () => {
                 password: 'password123',
                 district: 'Dhaka',
                 division: 'Dhaka',
-                role: 'user'
+                role: 'user',
             });
             await newUser.save();
+            const newUserToken = jwt.sign(
+                { id: newUser._id, email: newUser.email, role: newUser.role },
+                TEST_JWT_SECRET,
+                { expiresIn: '1h' },
+            );
 
             const response = await request(app)
                 .delete(`/api/carts/clear/${newUser.email}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${newUserToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
@@ -438,7 +456,7 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 1000,
-                    quantity: 2
+                    quantity: 2,
                 }),
                 new Cart({
                     id: 'test-product-' + Date.now() + Math.random(),
@@ -447,8 +465,8 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 500,
-                    quantity: 1
-                })
+                    quantity: 1,
+                }),
             ];
             await Cart.insertMany(cartItems);
         });
@@ -477,13 +495,18 @@ describe('Cart Endpoints', () => {
                 password: 'password123',
                 district: 'Dhaka',
                 division: 'Dhaka',
-                role: 'user'
+                role: 'user',
             });
             await newUser.save();
+            const newUserToken = jwt.sign(
+                { id: newUser._id, email: newUser.email, role: newUser.role },
+                TEST_JWT_SECRET,
+                { expiresIn: '1h' },
+            );
 
             const response = await request(app)
                 .get(`/api/carts/summary/${newUser.email}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${newUserToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
@@ -515,7 +538,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             // First addition
@@ -552,7 +575,7 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 1000,
-                    quantity: 2
+                    quantity: 2,
                 },
                 {
                     id: 'test-product-' + Date.now() + Math.random(),
@@ -561,8 +584,8 @@ describe('Cart Endpoints', () => {
                     description: testService.description,
                     model: testService.model,
                     price: 500,
-                    quantity: 3
-                }
+                    quantity: 3,
+                },
             ];
 
             for (const item of items) {
@@ -578,7 +601,7 @@ describe('Cart Endpoints', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .expect(STATUS_CODES.OK);
 
-            const expectedTotal = (1000 * 2) + (500 * 3); // 2000 + 1500 = 3500
+            const expectedTotal = 1000 * 2 + 500 * 3; // 2000 + 1500 = 3500
             expect(response.body.data.totalPrice).toBe(expectedTotal);
         });
 
@@ -595,7 +618,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const addResponse = await request(app)
@@ -612,7 +635,7 @@ describe('Cart Endpoints', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .send({ quantity: 5 });
             if (updateResponse.status !== STATUS_CODES.OK) {
-                console.log('Update cart item (business logic) failed:', updateResponse.body);
+                logger.info('Update cart item (business logic) failed:', updateResponse.body);
             }
             expect(updateResponse.status).toBe(STATUS_CODES.OK);
             expect(updateResponse.body.data.quantity).toBe(5);
@@ -637,7 +660,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const response = await request(app)
@@ -658,7 +681,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: -100,
                 config: testService.config,
-                quantity: 1
+                quantity: 1,
             };
 
             const response = await request(app)
@@ -679,7 +702,7 @@ describe('Cart Endpoints', () => {
                 model: testService.model,
                 price: testService.price,
                 config: testService.config,
-                quantity: -1
+                quantity: -1,
             };
 
             const response = await request(app)
@@ -691,4 +714,4 @@ describe('Cart Endpoints', () => {
             expect(response.body.success).toBe(false);
         });
     });
-}); 
+});

@@ -1,8 +1,11 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../../src/app');
-const Service = require('../../src/models/services');
-const User = require('../../src/models/user');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const serviceModule = require('../../src/models/services');
+const Service = serviceModule.default || serviceModule.Service || serviceModule;
+const userModule = require('../../src/models/user');
+const User = userModule.default || userModule.User || userModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 const jwt = require('jsonwebtoken');
@@ -24,12 +27,16 @@ describe('Service Endpoints', () => {
             password: 'password123',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'admin'
+            role: 'admin',
         });
         await adminUser.save();
 
         // Generate JWT token for admin user
-        adminToken = jwt.sign({ id: adminUser._id, email: adminUser.email, role: adminUser.role }, TEST_JWT_SECRET, { expiresIn: '1h' });
+        adminToken = jwt.sign(
+            { id: adminUser._id, email: adminUser.email, role: adminUser.role },
+            TEST_JWT_SECRET,
+            { expiresIn: '1h' },
+        );
 
         // Create test service
         testService = new Service({
@@ -40,7 +47,7 @@ describe('Service Endpoints', () => {
             description: 'Test service description',
             config: 'Test configuration',
             category: 'electronics',
-            madeIn: 'Bangladesh'
+            madeIn: 'Bangladesh',
         });
         await testService.save();
     });
@@ -69,7 +76,9 @@ describe('Service Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.services.every(service => service.category === 'electronics')).toBe(true);
+            expect(
+                response.body.data.services.every((service) => service.category === 'electronics'),
+            ).toBe(true);
         });
 
         it('should filter services by price range', async () => {
@@ -78,9 +87,11 @@ describe('Service Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.services.every(service =>
-                service.price >= 500 && service.price <= 1500
-            )).toBe(true);
+            expect(
+                response.body.data.services.every(
+                    (service) => service.price >= 500 && service.price <= 1500,
+                ),
+            ).toBe(true);
         });
 
         it('should search services by name', async () => {
@@ -89,9 +100,11 @@ describe('Service Endpoints', () => {
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.services.every(service =>
-                service.name.toLowerCase().includes('test')
-            )).toBe(true);
+            expect(
+                response.body.data.services.every((service) =>
+                    service.name.toLowerCase().includes('test'),
+                ),
+            ).toBe(true);
         });
 
         it('should handle empty results', async () => {
@@ -157,7 +170,7 @@ describe('Service Endpoints', () => {
                 description: 'New service description',
                 config: 'New configuration',
                 category: 'clothing',
-                madeIn: 'Bangladesh'
+                madeIn: 'Bangladesh',
             };
 
             const response = await request(app)
@@ -174,7 +187,7 @@ describe('Service Endpoints', () => {
 
         it('should return 400 for missing required fields', async () => {
             const serviceData = {
-                name: 'Incomplete Service'
+                name: 'Incomplete Service',
                 // Missing required fields
             };
 
@@ -196,7 +209,7 @@ describe('Service Endpoints', () => {
                 description: 'Test description',
                 config: 'Test config',
                 category: 'electronics',
-                madeIn: 'Bangladesh'
+                madeIn: 'Bangladesh',
             };
 
             const response = await request(app)
@@ -217,7 +230,7 @@ describe('Service Endpoints', () => {
                 description: 'Test description',
                 config: 'Test config',
                 category: 'electronics',
-                madeIn: 'Bangladesh'
+                madeIn: 'Bangladesh',
             };
 
             const response = await request(app)
@@ -234,7 +247,7 @@ describe('Service Endpoints', () => {
             const updateData = {
                 name: 'Updated Service Name',
                 price: 1500,
-                description: 'Updated description'
+                description: 'Updated description',
             };
 
             const response = await request(app)
@@ -252,7 +265,7 @@ describe('Service Endpoints', () => {
         it('should return 404 for non-existent service', async () => {
             const fakeId = new mongoose.Types.ObjectId();
             const updateData = {
-                name: 'Updated Name'
+                name: 'Updated Name',
             };
 
             const response = await request(app)
@@ -267,7 +280,7 @@ describe('Service Endpoints', () => {
 
         it('should return 400 for invalid price', async () => {
             const updateData = {
-                price: -100
+                price: -100,
             };
 
             const response = await request(app)
@@ -281,7 +294,7 @@ describe('Service Endpoints', () => {
 
         it('should return 401 without admin authentication', async () => {
             const updateData = {
-                name: 'Unauthorized Update'
+                name: 'Unauthorized Update',
             };
 
             const response = await request(app)
@@ -303,7 +316,7 @@ describe('Service Endpoints', () => {
                 description: 'Service to be deleted',
                 config: 'Delete config',
                 category: 'electronics',
-                madeIn: 'Bangladesh'
+                madeIn: 'Bangladesh',
             });
             await serviceToDelete.save();
 
@@ -377,4 +390,4 @@ describe('Service Endpoints', () => {
             expect(response.body.data.services).toHaveLength(0);
         });
     });
-}); 
+});

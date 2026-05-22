@@ -1,10 +1,14 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const app = require('../../src/app');
-const Order = require('../../src/models/orders');
-const User = require('../../src/models/user');
-const Service = require('../../src/models/services');
+const appModule = require('../../src/app');
+const app = appModule.default || appModule;
+const orderModule = require('../../src/models/orders');
+const Order = orderModule.default || orderModule.Order || orderModule;
+const userModule = require('../../src/models/user');
+const User = userModule.default || userModule.User || userModule;
+const serviceModule = require('../../src/models/services');
+const Service = serviceModule.default || serviceModule.Service || serviceModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
@@ -30,10 +34,14 @@ describe('Order Endpoints', () => {
             password: 'password123',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'user'
+            role: 'user',
         });
         await testUser.save();
-        authToken = jwt.sign({ id: testUser._id, email: testUser.email, role: testUser.role }, TEST_JWT_SECRET, { expiresIn: '1h' });
+        authToken = jwt.sign(
+            { id: testUser._id, email: testUser.email, role: testUser.role },
+            TEST_JWT_SECRET,
+            { expiresIn: '1h' },
+        );
 
         // Create admin user
         adminUser = new User({
@@ -42,10 +50,14 @@ describe('Order Endpoints', () => {
             password: 'password123',
             district: 'Dhaka',
             division: 'Dhaka',
-            role: 'admin'
+            role: 'admin',
         });
         await adminUser.save();
-        adminToken = jwt.sign({ id: adminUser._id, email: adminUser.email, role: adminUser.role }, TEST_JWT_SECRET, { expiresIn: '1h' });
+        adminToken = jwt.sign(
+            { id: adminUser._id, email: adminUser.email, role: adminUser.role },
+            TEST_JWT_SECRET,
+            { expiresIn: '1h' },
+        );
 
         // Create test service
         testService = new Service({
@@ -56,28 +68,33 @@ describe('Order Endpoints', () => {
             description: 'Test service description',
             config: 'Test configuration',
             category: 'electronics',
-            madeIn: 'Bangladesh'
+            madeIn: 'Bangladesh',
         });
         await testService.save();
 
         // Create test order (all required fields)
         testOrder = new Order({
             email: testUser.email,
-            items: [{
-                serviceId: testService._id,
-                name: testService.name,
-                price: testService.price,
-                quantity: 2
-            }],
+            items: [
+                {
+                    serviceId: testService._id,
+                    name: testService.name,
+                    price: testService.price,
+                    quantity: 2,
+                },
+            ],
             total: 2000,
             shippingAddress: {
                 street: '123 Test Street',
                 city: 'Dhaka',
+                district: 'Dhaka',
+                division: 'Dhaka',
                 postalCode: '1200',
-                country: 'Bangladesh'
+                country: 'Bangladesh',
+                phone: '+8801000000101',
             },
             paymentStatus: 'pending',
-            status: 'pending'
+            status: 'pending',
         });
         await testOrder.save();
     });
@@ -92,21 +109,26 @@ describe('Order Endpoints', () => {
         it('should create new order successfully', async () => {
             const orderData = {
                 email: testUser.email,
-                items: [{
-                    serviceId: testService._id,
-                    name: testService.name,
-                    price: testService.price,
-                    quantity: 1
-                }],
+                items: [
+                    {
+                        serviceId: testService._id,
+                        name: testService.name,
+                        price: testService.price,
+                        quantity: 1,
+                    },
+                ],
                 total: 1000,
                 shippingAddress: {
                     street: '456 New Street',
                     city: 'Chittagong',
+                    district: 'Chittagong',
+                    division: 'Chittagong',
                     postalCode: '4000',
-                    country: 'Bangladesh'
+                    country: 'Bangladesh',
+                    phone: '+8801000000102',
                 },
                 paymentStatus: 'pending',
-                status: 'pending'
+                status: 'pending',
             };
 
             const response = await request(app)
@@ -124,7 +146,7 @@ describe('Order Endpoints', () => {
 
         it('should return 400 for missing required fields', async () => {
             const orderData = {
-                email: testUser.email
+                email: testUser.email,
                 // Missing items, total, shippingAddress
             };
 
@@ -137,24 +159,29 @@ describe('Order Endpoints', () => {
             expect(response.body.success).toBe(false);
         });
 
-        it('should return 400 for invalid total amount', async () => {
+        it('should return 400 for invalid item quantity', async () => {
             const orderData = {
                 email: testUser.email,
-                items: [{
-                    serviceId: testService._id,
-                    name: testService.name,
-                    price: testService.price,
-                    quantity: 1
-                }],
-                total: -100, // Invalid negative total
+                items: [
+                    {
+                        serviceId: testService._id,
+                        name: testService.name,
+                        price: testService.price,
+                        quantity: 0,
+                    },
+                ],
+                total: 1000,
                 shippingAddress: {
                     street: '123 Test Street',
                     city: 'Dhaka',
+                    district: 'Dhaka',
+                    division: 'Dhaka',
                     postalCode: '1200',
-                    country: 'Bangladesh'
+                    country: 'Bangladesh',
+                    phone: '+8801000000103',
                 },
                 paymentStatus: 'pending',
-                status: 'pending'
+                status: 'pending',
             };
 
             const response = await request(app)
@@ -169,21 +196,26 @@ describe('Order Endpoints', () => {
         it('should return 401 without authentication', async () => {
             const orderData = {
                 email: testUser.email,
-                items: [{
-                    serviceId: testService._id,
-                    name: testService.name,
-                    price: testService.price,
-                    quantity: 1
-                }],
+                items: [
+                    {
+                        serviceId: testService._id,
+                        name: testService.name,
+                        price: testService.price,
+                        quantity: 1,
+                    },
+                ],
                 total: 1000,
                 shippingAddress: {
                     street: '123 Test Street',
                     city: 'Dhaka',
+                    district: 'Dhaka',
+                    division: 'Dhaka',
                     postalCode: '1200',
-                    country: 'Bangladesh'
+                    country: 'Bangladesh',
+                    phone: '+8801000000104',
                 },
                 paymentStatus: 'pending',
-                status: 'pending'
+                status: 'pending',
             };
 
             const response = await request(app)
@@ -199,7 +231,7 @@ describe('Order Endpoints', () => {
         it('should get all orders with pagination', async () => {
             const response = await request(app)
                 .get('/api/orders?page=1&limit=10')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
@@ -212,26 +244,75 @@ describe('Order Endpoints', () => {
         it('should filter orders by status', async () => {
             const response = await request(app)
                 .get('/api/orders?status=pending')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.orders.every(order => order.status === 'pending')).toBe(true);
+            expect(response.body.data.orders.every((order) => order.status === 'pending')).toBe(
+                true,
+            );
         });
 
         it('should filter orders by email', async () => {
             const response = await request(app)
                 .get(`/api/orders?email=${testUser.email}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .expect(STATUS_CODES.OK);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.orders.every(order => order.email === testUser.email)).toBe(true);
+            expect(response.body.data.orders.every((order) => order.email === testUser.email)).toBe(
+                true,
+            );
         });
 
         it('should return 401 without authentication', async () => {
             const response = await request(app)
                 .get('/api/orders')
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('GET /api/orders/my-orders', () => {
+        it('should return current user orders', async () => {
+            const response = await request(app)
+                .get('/api/orders/my-orders')
+                .set('Authorization', `Bearer ${authToken}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data).toHaveProperty('orders');
+            expect(response.body.data.orders.every((order) => order.email === testUser.email)).toBe(
+                true,
+            );
+        });
+
+        it('should return 401 without authentication', async () => {
+            const response = await request(app)
+                .get('/api/orders/my-orders')
+                .expect(STATUS_CODES.UNAUTHORIZED);
+
+            expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('GET /api/orders/my-stats', () => {
+        it('should return stats for current user', async () => {
+            const response = await request(app)
+                .get('/api/orders/my-stats')
+                .set('Authorization', `Bearer ${authToken}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data).toHaveProperty('total');
+            expect(response.body.data).toHaveProperty('pending');
+            expect(response.body.data).toHaveProperty('completed');
+        });
+
+        it('should return 401 without authentication', async () => {
+            const response = await request(app)
+                .get('/api/orders/my-stats')
                 .expect(STATUS_CODES.UNAUTHORIZED);
 
             expect(response.body.success).toBe(false);
@@ -284,12 +365,12 @@ describe('Order Endpoints', () => {
         it('should update order status successfully', async () => {
             const updateData = {
                 status: 'confirmed',
-                paymentStatus: 'paid'
+                paymentStatus: 'paid',
             };
 
             const response = await request(app)
                 .put(`/api/orders/${testOrder._id}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send(updateData)
                 .expect(STATUS_CODES.OK);
 
@@ -302,12 +383,12 @@ describe('Order Endpoints', () => {
         it('should return 404 for non-existent order', async () => {
             const fakeId = new mongoose.Types.ObjectId();
             const updateData = {
-                status: 'confirmed'
+                status: 'confirmed',
             };
 
             const response = await request(app)
                 .put(`/api/orders/${fakeId}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send(updateData)
                 .expect(STATUS_CODES.NOT_FOUND);
 
@@ -317,12 +398,12 @@ describe('Order Endpoints', () => {
 
         it('should return 400 for invalid status', async () => {
             const updateData = {
-                status: 'invalid-status'
+                status: 'invalid-status',
             };
 
             const response = await request(app)
                 .put(`/api/orders/${testOrder._id}`)
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send(updateData)
                 .expect(STATUS_CODES.BAD_REQUEST);
 
@@ -331,7 +412,7 @@ describe('Order Endpoints', () => {
 
         it('should return 401 without authentication', async () => {
             const updateData = {
-                status: 'confirmed'
+                status: 'confirmed',
             };
 
             const response = await request(app)
@@ -379,21 +460,26 @@ describe('Order Endpoints', () => {
         it('should delete order successfully', async () => {
             const orderToDelete = new Order({
                 email: testUser.email,
-                items: [{
-                    serviceId: testService._id,
-                    name: testService.name,
-                    price: testService.price,
-                    quantity: 1
-                }],
+                items: [
+                    {
+                        serviceId: testService._id,
+                        name: testService.name,
+                        price: testService.price,
+                        quantity: 1,
+                    },
+                ],
                 total: 1000,
                 shippingAddress: {
                     street: '123 Test Street',
                     city: 'Dhaka',
+                    district: 'Dhaka',
+                    division: 'Dhaka',
                     postalCode: '1200',
-                    country: 'Bangladesh'
+                    country: 'Bangladesh',
+                    phone: '+8801000000105',
                 },
                 paymentStatus: 'pending',
-                status: 'pending'
+                status: 'pending',
             });
             await orderToDelete.save();
 
