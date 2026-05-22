@@ -1,0 +1,12 @@
+{
+    "watch": ["src", "server.ts"],
+    "ext": "ts,json",
+    "ignore": ["dist", "node_modules", "tests", "*.test.ts"],
+    "delay": 1000,
+    "exec": "ts-node --transpile-only server.ts",
+    "restartable": "rs",
+    "events": {
+        "restart": "echo '🔄 Server restarting...'",
+        "crash": "echo '💥 Server crashed — waiting for changes...'"
+    }
+}
