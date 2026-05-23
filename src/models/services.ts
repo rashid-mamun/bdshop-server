@@ -20,6 +20,15 @@ const serviceSchema = new Schema<IService>(
             type: String,
             required: [true, 'Image URL is required'],
         },
+        imgPublicId: {
+            type: String,
+            trim: true,
+        },
+        imgStorage: {
+            type: String,
+            enum: ['cloudinary', 'local', 'external', ''],
+            default: '',
+        },
         price: {
             type: Number,
             required: [true, 'Price is required'],

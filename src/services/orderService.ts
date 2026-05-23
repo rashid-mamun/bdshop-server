@@ -106,7 +106,7 @@ const orderService = {
                 updateFields.status = updateData.status;
             }
             if (updateData.paymentStatus) {
-                const validPaymentStatuses = ['pending', 'paid', 'failed'];
+                const validPaymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
                 if (!validPaymentStatuses.includes(updateData.paymentStatus)) {
                     throw new Error(
                         `Invalid payment status. Must be one of: ${validPaymentStatuses.join(', ')}`,

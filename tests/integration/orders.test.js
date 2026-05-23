@@ -380,6 +380,17 @@ describe('Order Endpoints', () => {
             expect(response.body.data.paymentStatus).toBe(updateData.paymentStatus);
         });
 
+        it('should update payment status to refunded', async () => {
+            const response = await request(app)
+                .put(`/api/orders/${testOrder._id}`)
+                .set('Authorization', `Bearer ${adminToken}`)
+                .send({ paymentStatus: 'refunded' })
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.paymentStatus).toBe('refunded');
+        });
+
         it('should return 404 for non-existent order', async () => {
             const fakeId = new mongoose.Types.ObjectId();
             const updateData = {

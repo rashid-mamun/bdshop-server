@@ -353,10 +353,10 @@ const validateOrder = (req: Request, res: Response, next: NextFunction) => {
         });
     }
 
-    if (paymentStatus && !['pending', 'paid', 'failed'].includes(paymentStatus)) {
+    if (paymentStatus && !['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
         return res.status(400).json({
             success: false,
-            error: 'Payment status must be one of: pending, paid, failed',
+            error: 'Payment status must be one of: pending, paid, failed, refunded',
         });
     }
 
@@ -378,10 +378,10 @@ const validateOrder = (req: Request, res: Response, next: NextFunction) => {
 const validateOrderUpdate = (req: Request, res: Response, next: NextFunction) => {
     const { paymentStatus, status } = req.body;
 
-    if (paymentStatus && !['pending', 'paid', 'failed'].includes(paymentStatus)) {
+    if (paymentStatus && !['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
         return res.status(400).json({
             success: false,
-            error: 'Payment status must be one of: pending, paid, failed',
+            error: 'Payment status must be one of: pending, paid, failed, refunded',
         });
     }
 

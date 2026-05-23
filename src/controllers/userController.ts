@@ -250,7 +250,16 @@ const userController = {
 
     deactivateUser: asyncHandler(async (req: Request, res: Response) => {
         try {
-            const user = await userService.deactivateUser(req.params.email as string);
+            const requester = (req as RequestWithUser).user;
+            const targetEmail = req.params.email as string;
+            if (requester?.email?.toLowerCase() === targetEmail.toLowerCase()) {
+                return sendErrorResponse(
+                    res,
+                    STATUS_CODES.BAD_REQUEST,
+                    'Admins cannot deactivate their own account',
+                );
+            }
+            const user = await userService.deactivateUser(targetEmail);
             logger.info(`User deactivated: ${user.email}`);
             sendSuccessResponse(
                 res,

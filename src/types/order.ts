@@ -23,7 +23,7 @@ export interface IOrder extends Document {
     items: IOrderItem[];
     total: number;
     shippingAddress: IShippingAddress;
-    paymentStatus: 'pending' | 'paid' | 'failed';
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentId?: string;
     status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 }

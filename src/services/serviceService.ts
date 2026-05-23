@@ -1,4 +1,5 @@
 import Service from '../models/services';
+import { deleteStoredImage, promotePendingUpload } from './uploadAssetService';
 import {
     getErrorMessage,
     getErrorName,
@@ -32,6 +33,18 @@ const serviceService = {
         try {
             const service = new Service(serviceData);
             const savedService = await service.save();
+            const promotedImage = await promotePendingUpload({
+                publicId: savedService.imgPublicId,
+                storage: savedService.imgStorage,
+                serviceId: savedService._id,
+            });
+            if (promotedImage) {
+                savedService.img = promotedImage.url;
+                savedService.imgPublicId = promotedImage.publicId;
+                savedService.imgStorage = promotedImage.storage as any;
+                savedService.images = [promotedImage.url];
+                await savedService.save();
+            }
             logger.info('Service created:', savedService._id);
             return savedService;
         } catch (error: any) {
@@ -118,6 +131,12 @@ const serviceService = {
                 error.name = 'NotFoundError';
                 throw error;
             }
+            const oldImage = {
+                url: service.img,
+                publicId: service.imgPublicId,
+                storage: service.imgStorage,
+            };
+            const imageChanged = updateData.img !== undefined && updateData.img !== service.img;
             Object.keys(updateData).forEach((key) => {
                 const value = (updateData as any)[key];
                 if (value !== undefined) {
@@ -127,6 +146,21 @@ const serviceService = {
             const validationError = service.validateSync();
             if (validationError) throw validationError;
             await service.save();
+            if (imageChanged) {
+                await deleteStoredImage(oldImage);
+                const promotedImage = await promotePendingUpload({
+                    publicId: service.imgPublicId,
+                    storage: service.imgStorage,
+                    serviceId: service._id,
+                });
+                if (promotedImage) {
+                    service.img = promotedImage.url;
+                    service.imgPublicId = promotedImage.publicId;
+                    service.imgStorage = promotedImage.storage as any;
+                    service.images = [promotedImage.url];
+                    await service.save();
+                }
+            }
             return service;
         } catch (error: any) {
             logger.error('Update service error:', getErrorMessage(error));
@@ -138,6 +172,11 @@ const serviceService = {
         try {
             const service = await Service.findByIdAndDelete(id);
             if (!service) throw new Error('Service not found');
+            await deleteStoredImage({
+                url: service.img,
+                publicId: service.imgPublicId,
+                storage: service.imgStorage,
+            });
             return service;
         } catch (error: any) {
             logger.error('Delete service error:', getErrorMessage(error));

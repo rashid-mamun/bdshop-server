@@ -505,6 +505,16 @@ describe('User Endpoints', () => {
             expect(response.body.data.isActive).toBe(false);
         });
 
+        it('should reject admin self-deactivation', async () => {
+            const response = await request(app)
+                .put(`/api/users/${adminUser.email}/deactivate`)
+                .set('Authorization', `Bearer ${adminToken}`)
+                .expect(STATUS_CODES.BAD_REQUEST);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('Admins cannot deactivate their own account');
+        });
+
         it('should return 401 without admin authentication', async () => {
             const response = await request(app)
                 .put(`/api/users/${testUser.email}/deactivate`)

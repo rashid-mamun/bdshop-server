@@ -4,6 +4,8 @@ export interface IService extends Document {
     name: string;
     model: string;
     img: string;
+    imgPublicId?: string;
+    imgStorage?: 'cloudinary' | 'local' | 'external' | '';
     price: number;
     description: string;
     config: string;

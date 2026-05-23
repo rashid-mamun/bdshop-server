@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 
 import environment from './config/environment';
 import { logger } from './utils/logger';
@@ -23,7 +24,11 @@ import addressRoutes from './routes/addressRoutes';
 
 const app = express();
 
-app.use(helmet());
+app.use(
+    helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+);
 
 app.use(compression());
 
@@ -73,6 +78,7 @@ app.use(`${environment.API_PREFIX}/reviews`, reviewRoutes);
 app.use(`${environment.API_PREFIX}/upload`, uploadRoutes);
 app.use(`${environment.API_PREFIX}/auth`, authRoutes);
 app.use(`${environment.API_PREFIX}/addresses`, addressRoutes);
+app.use('/uploads', express.static(path.resolve(process.cwd(), environment.UPLOAD_PATH)));
 app.use('/', publicRoutes);
 
 app.use(notFoundHandler);
