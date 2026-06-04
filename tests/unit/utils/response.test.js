@@ -19,7 +19,13 @@ describe('utils/response', () => {
     it('should build error response', () => {
         const response = createErrorResponse(new Error('fail'), 500);
         expect(response.success).toBe(false);
-        expect(response.error).toBe('fail');
+        expect(response.error).toBe('Something went wrong. Please try again.');
+    });
+
+    it('should keep validation error responses actionable', () => {
+        const response = createErrorResponse(new Error('Please enter a valid email'), 400);
+        expect(response.success).toBe(false);
+        expect(response.error).toBe('Please enter a valid email');
     });
 
     it('should build paginated response', () => {

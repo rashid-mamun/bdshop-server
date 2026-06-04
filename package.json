@@ -4,7 +4,8 @@
     "description": "A comprehensive e-commerce API server with improved security, validation, and testing using functional programming patterns",
     "main": "server.ts",
     "scripts": {
-        "start": "ts-node server.ts",
+        "start": "node dist/server.js",
+        "start:ts": "ts-node server.ts",
         "dev": "nodemon --watch src --watch server.ts --ext ts,json --exec ts-node server.ts",
         "start-dev": "ts-node-dev --respawn --transpile-only server.ts",
         "build": "tsc",
@@ -49,6 +50,7 @@
         "bcryptjs": "^2.4.3",
         "cloudinary": "^2.10.0",
         "compression": "^1.7.4",
+        "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
         "express": "^4.17.3",
@@ -60,23 +62,24 @@
         "mongoose": "^6.5.2",
         "morgan": "^1.10.0",
         "multer": "^2.1.1",
+        "nodemailer": "^8.0.10",
         "stripe": "^22.1.1",
         "winston": "^3.8.1"
     },
     "devDependencies": {
         "@types/bcryptjs": "^2.4.6",
+        "@types/compression": "^1.7.5",
         "@types/cookie-parser": "^1.4.10",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/mongoose": "^5.11.96",
-        "@types/multer": "^2.1.0",
         "@types/morgan": "^1.9.9",
-        "@types/compression": "^1.7.5",
+        "@types/multer": "^2.1.0",
         "@types/node": "^25.6.2",
+        "@types/nodemailer": "^8.0.0",
         "@typescript-eslint/eslint-plugin": "^8.59.2",
         "@typescript-eslint/parser": "^8.59.2",
-        "cookie-parser": "^1.4.7",
         "eslint": "^8.57.1",
         "jest": "^29.7.0",
         "mongodb-memory-server": "^10.1.4",
@@ -87,6 +90,9 @@
         "ts-node": "^10.9.2",
         "ts-node-dev": "^2.0.0",
         "typescript": "^6.0.3"
+    },
+    "overrides": {
+        "fast-xml-parser": "^5.8.0"
     },
     "jest": {
         "testEnvironment": "node",

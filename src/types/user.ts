@@ -15,6 +15,8 @@ export interface IUser extends Document {
     profileImage?: string;
     dob?: string;
     gender?: string;
+    passwordResetToken?: string;
+    passwordResetExpires?: Date;
     fullName: string;
     status: string;
     toPublicJSON(): Partial<IUser>;

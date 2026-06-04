@@ -140,7 +140,9 @@ describe('Order Endpoints', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe(SUCCESS_MESSAGES.ORDER_CREATED);
             expect(response.body.data.email).toBe(orderData.email);
-            expect(response.body.data.total).toBe(orderData.total);
+            expect(response.body.data.subtotal).toBe(orderData.total);
+            expect(response.body.data.shippingFee).toBe(120);
+            expect(response.body.data.total).toBe(1120);
             expect(response.body.data.status).toBe('pending');
         });
 
@@ -193,7 +195,7 @@ describe('Order Endpoints', () => {
             expect(response.body.success).toBe(false);
         });
 
-        it('should return 401 without authentication', async () => {
+        it('should create guest order without authentication', async () => {
             const orderData = {
                 email: testUser.email,
                 items: [
@@ -221,9 +223,11 @@ describe('Order Endpoints', () => {
             const response = await request(app)
                 .post('/api/orders')
                 .send(orderData)
-                .expect(STATUS_CODES.UNAUTHORIZED);
+                .expect(STATUS_CODES.CREATED);
 
-            expect(response.body.success).toBe(false);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.email).toBe(orderData.email);
+            expect(response.body.data.total).toBe(1120);
         });
     });
 
@@ -316,6 +320,29 @@ describe('Order Endpoints', () => {
                 .expect(STATUS_CODES.UNAUTHORIZED);
 
             expect(response.body.success).toBe(false);
+        });
+    });
+
+    describe('GET /api/orders/track/:id', () => {
+        it('should track order publicly by order number and email', async () => {
+            const response = await request(app)
+                .get(`/api/orders/track/${testOrder.orderNumber}`)
+                .query({ email: testOrder.email })
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data._id).toBe(testOrder._id.toString());
+            expect(response.body.data.orderNumber).toBe(testOrder.orderNumber);
+        });
+
+        it('should return friendly not found for invalid public order number', async () => {
+            const response = await request(app)
+                .get('/api/orders/track/BDS-DOES-NOT-EXIST')
+                .query({ email: testOrder.email })
+                .expect(STATUS_CODES.NOT_FOUND);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.error).toBe('We could not find an order with that ID and email.');
         });
     });
 

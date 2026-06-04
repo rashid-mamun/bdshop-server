@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import orderService from '../services/orderService';
 import { createSuccessResponse, sendSuccessResponse, sendErrorResponse } from '../utils/response';
 import { STATUS_CODES } from '../constants/statusCodes';
@@ -16,6 +17,8 @@ import {
 } from '../utils/errorHandler';
 import { USER_ROLES } from '../constants/config';
 import environment from '../config/environment';
+import { buildCheckoutQuote } from '../services/checkoutPricingService';
+import { sendOrderConfirmationEmail } from '../services/emailService';
 
 type RequestWithUser = Request & {
     user?: {
@@ -46,13 +49,15 @@ const orderController = {
     createOrder: async (req: Request, res: Response) => {
         const reservedItems: ReservedItem[] = [];
         try {
-            const { paymentMethodId, items, shippingAddress } = req.body;
+            const { paymentMethodId, items, shippingAddress, couponCode, idempotencyKey } =
+                req.body;
             const requesterEmail = (req as RequestWithUser).user?.email;
+            const orderEmail = requesterEmail || req.body.email;
 
-            if (!requesterEmail) {
-                return res.status(STATUS_CODES.UNAUTHORIZED).json({
+            if (!orderEmail) {
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
-                    error: ERROR_MESSAGES.UNAUTHORIZED,
+                    error: 'Email is required',
                 });
             }
 
@@ -63,48 +68,9 @@ const orderController = {
                 });
             }
 
-            const normalizedItems = await Promise.all(
-                items.map(async (item: any) => {
-                    if (!item?.serviceId) {
-                        const error = new Error('Service ID is required');
-                        error.name = 'ValidationError';
-                        throw error;
-                    }
-                    const quantity = Number(item.quantity);
-                    if (!Number.isFinite(quantity) || quantity < 1) {
-                        const error = new Error('Item quantity must be at least 1');
-                        error.name = 'ValidationError';
-                        throw error;
-                    }
-
-                    const service = await Service.findById(item.serviceId);
-                    if (!service) {
-                        const error = new Error('Service not found');
-                        error.name = 'NotFoundError';
-                        throw error;
-                    }
-
-                    if (service.stock < quantity) {
-                        const error = new Error(
-                            `Only ${service.stock} item(s) left for ${service.name}`,
-                        );
-                        error.name = 'ValidationError';
-                        throw error;
-                    }
-
-                    return {
-                        serviceId: service._id,
-                        name: service.name,
-                        price: service.price,
-                        quantity,
-                    };
-                }),
-            );
-
-            const computedTotal = normalizedItems.reduce(
-                (sum, item) => sum + item.price * item.quantity,
-                0,
-            );
+            const quote = await buildCheckoutQuote(items, couponCode);
+            const normalizedItems = quote.items;
+            const totals = quote.totals;
 
             let paymentId = '';
             let paymentStatus = 'pending';
@@ -138,13 +104,22 @@ const orderController = {
                 }
 
                 try {
-                    const intent = await stripe.paymentIntents.create({
-                        amount: Math.round(computedTotal * 100),
-                        currency: 'bdt',
-                        payment_method: paymentMethodId,
-                        confirm: true,
-                        return_url: `${environment.FRONTEND_URL}/my-account?tab=orders`,
-                    });
+                    const intent = await stripe.paymentIntents.create(
+                        {
+                            amount: Math.round(totals.total * 100),
+                            currency: 'bdt',
+                            payment_method: paymentMethodId,
+                            confirm: true,
+                            return_url: `${environment.FRONTEND_URL}/my-account?tab=orders`,
+                            metadata: {
+                                email: orderEmail,
+                                couponCode: totals.couponCode,
+                            },
+                        },
+                        typeof idempotencyKey === 'string' && idempotencyKey
+                            ? { idempotencyKey }
+                            : undefined,
+                    );
 
                     logger.info('Stripe Intent Status:', intent.status);
 
@@ -182,13 +157,23 @@ const orderController = {
 
             const order = await orderService.createOrder({
                 ...req.body,
-                email: requesterEmail,
+                email: orderEmail,
                 items: normalizedItems,
-                total: computedTotal,
+                subtotal: totals.subtotal,
+                shippingFee: totals.shippingFee,
+                tax: totals.tax,
+                discount: totals.discount,
+                couponCode: totals.couponCode,
+                total: totals.total,
                 paymentStatus,
                 paymentId,
                 status: 'pending',
             });
+
+            const savedOrder = order as { _id?: unknown; id?: unknown; orderNumber?: string };
+            const orderId =
+                savedOrder.orderNumber || String(savedOrder._id || savedOrder.id || 'pending');
+            await sendOrderConfirmationEmail(orderEmail, orderId, totals.total);
 
             res.status(STATUS_CODES.CREATED).json({
                 success: true,
@@ -219,6 +204,88 @@ const orderController = {
             res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 error: ERROR_MESSAGES.ORDER_CREATION_FAILED,
+            });
+        }
+    },
+
+    quoteOrder: async (req: Request, res: Response) => {
+        try {
+            const quote = await buildCheckoutQuote(req.body.items, req.body.couponCode);
+            res.status(STATUS_CODES.OK).json(
+                createSuccessResponse(quote, 'Checkout quote created'),
+            );
+        } catch (error: Error | unknown) {
+            if (getErrorName(error) === 'ValidationError') {
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
+                    success: false,
+                    error: getErrorMessage(error),
+                });
+            }
+            if (getErrorName(error) === 'NotFoundError' || getErrorName(error) === 'CastError') {
+                return res
+                    .status(STATUS_CODES.BAD_REQUEST)
+                    .json({ success: false, error: ERROR_MESSAGES.SERVICE_NOT_FOUND });
+            }
+            res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                error: 'Unable to create checkout quote',
+            });
+        }
+    },
+
+    handleStripeWebhook: async (req: Request, res: Response) => {
+        const signature = req.headers['stripe-signature'];
+        if (!environment.STRIPE_WEBHOOK_SECRET) {
+            return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                error: 'Stripe webhook is not configured',
+            });
+        }
+        if (typeof signature !== 'string') {
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                error: 'Missing Stripe signature',
+            });
+        }
+
+        let event: any;
+        try {
+            event = stripe.webhooks.constructEvent(
+                req.body,
+                signature,
+                environment.STRIPE_WEBHOOK_SECRET,
+            );
+        } catch (error: Error | unknown) {
+            logger.warn('Invalid Stripe webhook signature', { error: getErrorMessage(error) });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                error: 'Invalid Stripe signature',
+            });
+        }
+
+        try {
+            if (event.type === 'payment_intent.succeeded') {
+                const intent = event.data.object as any;
+                await Order.findOneAndUpdate(
+                    { paymentId: intent.id },
+                    { paymentStatus: 'paid', status: 'confirmed' },
+                );
+            }
+
+            if (event.type === 'payment_intent.payment_failed') {
+                const intent = event.data.object as any;
+                await Order.findOneAndUpdate(
+                    { paymentId: intent.id },
+                    { paymentStatus: 'failed', status: 'cancelled' },
+                );
+            }
+
+            return res.json({ received: true });
+        } catch (error: Error | unknown) {
+            logger.error('Stripe webhook processing failed', { error: getErrorMessage(error) });
+            return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                error: 'Stripe webhook processing failed',
             });
         }
     },
@@ -330,6 +397,50 @@ const orderController = {
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: { total, pending, completed },
+        });
+    }),
+
+    trackOrder: asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const { email } = req.query as { email?: string };
+        const trimmedOrderId = String(id || '').trim();
+
+        if (!email) {
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                error: 'Email is required',
+            });
+        }
+
+        if (!trimmedOrderId) {
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                error: 'Order ID is required',
+            });
+        }
+
+        const orderLookup: Record<string, unknown>[] = [
+            { orderNumber: trimmedOrderId.toUpperCase() },
+        ];
+        if (mongoose.Types.ObjectId.isValid(trimmedOrderId)) {
+            orderLookup.push({ _id: trimmedOrderId });
+        }
+
+        const order = await Order.findOne({
+            email: email.toLowerCase(),
+            $or: orderLookup,
+        });
+        if (!order) {
+            return res.status(STATUS_CODES.NOT_FOUND).json({
+                success: false,
+                error: 'We could not find an order with that ID and email.',
+            });
+        }
+
+        return res.status(STATUS_CODES.OK).json({
+            success: true,
+            message: SUCCESS_MESSAGES.ORDER_FETCHED,
+            data: order,
         });
     }),
 

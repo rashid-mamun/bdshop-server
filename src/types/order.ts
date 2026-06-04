@@ -19,8 +19,14 @@ export interface IShippingAddress {
 }
 
 export interface IOrder extends Document {
+    orderNumber: string;
     email: string;
     items: IOrderItem[];
+    subtotal: number;
+    shippingFee: number;
+    tax: number;
+    discount: number;
+    couponCode?: string;
     total: number;
     shippingAddress: IShippingAddress;
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';

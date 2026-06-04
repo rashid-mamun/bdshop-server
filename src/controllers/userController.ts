@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import userService from '../services/userService';
 import {
     getErrorMessage,
@@ -14,6 +15,7 @@ import { logger } from '../utils/logger';
 import { IUser } from '../types';
 import { User } from '../models/user';
 import { USER_ROLES } from '../constants/config';
+import { sendPasswordResetEmail } from '../services/emailService';
 
 type RequestWithUser = Request & {
     user?: {
@@ -24,6 +26,7 @@ type RequestWithUser = Request & {
 };
 
 const isAdminRole = (role?: string) => role === USER_ROLES.ADMIN || role === USER_ROLES.SUPER_ADMIN;
+const hashResetToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
 const userController = {
     createUser: asyncHandler(async (req: Request, res: Response) => {
@@ -97,6 +100,77 @@ const userController = {
         const { clearAuthCookies } = await import('../utils/jwt');
         clearAuthCookies(res);
         sendSuccessResponse(res, STATUS_CODES.OK, 'Logout successful');
+    }),
+
+    requestPasswordReset: asyncHandler(async (req: Request, res: Response) => {
+        const { email } = req.body;
+        if (!email) {
+            return sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, 'Email is required');
+        }
+
+        const user = await User.findOne({ email: String(email).toLowerCase() }).select(
+            '+passwordResetToken +passwordResetExpires',
+        );
+
+        let resetToken = '';
+        if (user?.isActive) {
+            resetToken = crypto.randomBytes(32).toString('hex');
+            user.passwordResetToken = hashResetToken(resetToken);
+            user.passwordResetExpires = new Date(Date.now() + 1000 * 60 * 30);
+            await user.save();
+            await sendPasswordResetEmail(user.email, resetToken);
+            logger.info(`Password reset requested: ${user.email}`);
+        }
+
+        const responseData =
+            process.env.NODE_ENV === 'production' || !resetToken
+                ? undefined
+                : { resetToken, expiresInMinutes: 30 };
+
+        sendSuccessResponse(
+            res,
+            STATUS_CODES.OK,
+            'If an account exists, password reset instructions will be sent shortly.',
+            responseData || null,
+        );
+    }),
+
+    resetPassword: asyncHandler(async (req: Request, res: Response) => {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return sendErrorResponse(
+                res,
+                STATUS_CODES.BAD_REQUEST,
+                'Reset token and new password are required',
+            );
+        }
+        if (newPassword.length < 8) {
+            return sendErrorResponse(
+                res,
+                STATUS_CODES.BAD_REQUEST,
+                'New password must be at least 8 characters',
+            );
+        }
+
+        const user = await User.findOne({
+            passwordResetToken: hashResetToken(token),
+            passwordResetExpires: { $gt: new Date() },
+        }).select('+password +passwordResetToken +passwordResetExpires');
+
+        if (!user) {
+            return sendErrorResponse(
+                res,
+                STATUS_CODES.BAD_REQUEST,
+                'Reset token is invalid or expired',
+            );
+        }
+
+        user.password = newPassword;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+        logger.info(`Password reset completed: ${user.email}`);
+        sendSuccessResponse(res, STATUS_CODES.OK, 'Password reset successful');
     }),
 
     getUserByEmail: asyncHandler(async (req: Request, res: Response) => {
@@ -348,11 +422,11 @@ const userController = {
                 'Both current and new passwords are required',
             );
         }
-        if (newPassword.length < 6) {
+        if (newPassword.length < 8) {
             return sendErrorResponse(
                 res,
                 STATUS_CODES.BAD_REQUEST,
-                'New password must be at least 6 characters',
+                'New password must be at least 8 characters',
             );
         }
         try {

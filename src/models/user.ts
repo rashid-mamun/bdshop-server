@@ -62,6 +62,14 @@ const userSchema = new Schema<IUser>(
         gender: {
             type: String,
         },
+        passwordResetToken: {
+            type: String,
+            select: false,
+        },
+        passwordResetExpires: {
+            type: Date,
+            select: false,
+        },
     },
     {
         timestamps: true,
@@ -98,6 +106,8 @@ userSchema.index({ isActive: 1 });
 userSchema.methods.toPublicJSON = function () {
     const user = this.toObject();
     delete user.password;
+    delete user.passwordResetToken;
+    delete user.passwordResetExpires;
     delete user.__v;
     return user;
 };

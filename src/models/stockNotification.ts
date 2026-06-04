@@ -32,4 +32,9 @@ const stockNotificationSchema = new Schema<IStockNotification>(
     },
 );
 
+stockNotificationSchema.index(
+    { email: 1, serviceId: 1, status: 1 },
+    { unique: true, partialFilterExpression: { status: 'pending' } },
+);
+
 export default mongoose.model<IStockNotification>('StockNotification', stockNotificationSchema);

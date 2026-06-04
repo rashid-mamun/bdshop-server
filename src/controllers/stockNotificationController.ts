@@ -36,6 +36,6 @@ export const createStockNotification = async (req: Request, res: Response) => {
             createSuccessResponse(notification, 'Back-in-stock alert saved successfully'),
         );
     } catch (error: Error | unknown) {
-        res.status(500).json({ success: false, error: getErrorMessage(error) });
+        res.status(500).json({ success: false, error: 'Something went wrong. Please try again.' });
     }
 };

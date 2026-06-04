@@ -26,7 +26,8 @@ const getLocalFilenameFromUrl = (url?: string) => {
 
 export const deleteStoredImage = async (image: StoredImage) => {
     const storage = image.storage || (image.url?.includes('/uploads/') ? 'local' : '');
-    const publicId = image.publicId || (storage === 'local' ? getLocalFilenameFromUrl(image.url) : '');
+    const publicId =
+        image.publicId || (storage === 'local' ? getLocalFilenameFromUrl(image.url) : '');
 
     if (!publicId) return;
 
@@ -203,11 +204,14 @@ export const promotePendingUpload = async ({
 };
 
 export const startUploadCleanupJob = () => {
-    const interval = setInterval(() => {
-        cleanupExpiredPendingUploads().catch((error) => {
-            logger.warn(`Pending upload cleanup failed: ${getErrorMessage(error)}`);
-        });
-    }, 15 * 60 * 1000);
+    const interval = setInterval(
+        () => {
+            cleanupExpiredPendingUploads().catch((error) => {
+                logger.warn(`Pending upload cleanup failed: ${getErrorMessage(error)}`);
+            });
+        },
+        15 * 60 * 1000,
+    );
 
     interval.unref?.();
     return interval;

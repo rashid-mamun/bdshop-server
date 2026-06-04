@@ -138,7 +138,11 @@ router.post(
             }
         } catch (error: Error | unknown) {
             if (getErrorMessage(error).includes('unsaved uploads')) {
-                return sendErrorResponse(res, STATUS_CODES.TOO_MANY_REQUESTS, getErrorMessage(error));
+                return sendErrorResponse(
+                    res,
+                    STATUS_CODES.TOO_MANY_REQUESTS,
+                    getErrorMessage(error),
+                );
             }
             logger.error('Error uploading image to cloudinary:', getErrorMessage(error));
             sendErrorResponse(res, STATUS_CODES.INTERNAL_SERVER_ERROR, 'Image upload failed');

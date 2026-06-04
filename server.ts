@@ -1,7 +1,10 @@
 import app from './src/app';
 import { connectDatabase } from './src/config/database';
 import { logger } from './src/utils/logger';
-import { cleanupExpiredPendingUploads, startUploadCleanupJob } from './src/services/uploadAssetService';
+import {
+    cleanupExpiredPendingUploads,
+    startUploadCleanupJob,
+} from './src/services/uploadAssetService';
 
 const PORT = process.env.PORT || 5000;
 

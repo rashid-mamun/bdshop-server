@@ -21,9 +21,14 @@ const createErrorResponse = (
     statusCode = STATUS_CODES.INTERNAL_SERVER_ERROR,
 ) => {
     const errorMessage = error instanceof Error ? getErrorMessage(error) : String(error);
+    const publicMessage =
+        statusCode >= STATUS_CODES.INTERNAL_SERVER_ERROR
+            ? 'Something went wrong. Please try again.'
+            : errorMessage;
+
     return {
         success: false,
-        error: errorMessage,
+        error: publicMessage,
         timestamp: new Date().toISOString(),
     };
 };
@@ -99,13 +104,17 @@ const sendErrorResponse = (
     message = 'Internal server error',
     error: unknown = null,
 ) => {
+    const publicMessage =
+        statusCode >= STATUS_CODES.INTERNAL_SERVER_ERROR
+            ? 'Something went wrong. Please try again.'
+            : message;
     const response: Record<string, unknown> = {
         success: false,
-        error: message,
+        error: publicMessage,
         timestamp: new Date().toISOString(),
     };
 
-    if (error !== null) {
+    if (error !== null && statusCode < STATUS_CODES.INTERNAL_SERVER_ERROR) {
         response.details = error;
     }
 

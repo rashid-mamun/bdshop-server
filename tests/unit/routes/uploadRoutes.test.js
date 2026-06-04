@@ -1,6 +1,15 @@
 jest.mock('../../../src/middleware/auth', () => ({
-    authenticateToken: (req, res, next) => next(),
+    authenticateToken: (req, res, next) => {
+        req.user = { email: 'admin@example.com', role: 'admin' };
+        next();
+    },
     requireAdmin: (req, res, next) => next(),
+}));
+
+jest.mock('../../../src/services/uploadAssetService', () => ({
+    assertPendingUploadQuota: jest.fn().mockResolvedValue(undefined),
+    cleanupExpiredPendingUploads: jest.fn().mockResolvedValue(undefined),
+    registerPendingUpload: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../../../src/config/cloudinary', () => ({

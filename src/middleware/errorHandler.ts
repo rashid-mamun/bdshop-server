@@ -59,9 +59,14 @@ const errorHandler = (err: Error | unknown, req: Request, res: Response, next: N
     }
 
     const statusCode = (mongoError.status as number) || 500;
+    const publicMessage =
+        statusCode >= 500
+            ? 'Something went wrong. Please try again.'
+            : errorObj.message || 'Internal server error';
+
     res.status(statusCode).json({
         success: false,
-        error: errorObj.message || 'Internal server error',
+        error: publicMessage,
     });
 };
 

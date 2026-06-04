@@ -9,6 +9,7 @@ import {
 import { IService } from '../types';
 import { logger } from '../utils/logger';
 import { APP_CONFIG } from '../constants/config';
+import { notifyBackInStock } from './stockNotificationService';
 
 type ServiceFilters = {
     category?: string;
@@ -136,6 +137,7 @@ const serviceService = {
                 publicId: service.imgPublicId,
                 storage: service.imgStorage,
             };
+            const previousStock = service.stock;
             const imageChanged = updateData.img !== undefined && updateData.img !== service.img;
             Object.keys(updateData).forEach((key) => {
                 const value = (updateData as any)[key];
@@ -160,6 +162,9 @@ const serviceService = {
                     service.images = [promotedImage.url];
                     await service.save();
                 }
+            }
+            if (previousStock <= 0 && service.stock > 0) {
+                await notifyBackInStock(service._id.toString(), service.name);
             }
             return service;
         } catch (error: any) {

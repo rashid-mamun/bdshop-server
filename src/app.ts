@@ -11,6 +11,7 @@ import { logger } from './utils/logger';
 import { errorHandler, notFoundHandler, methodNotAllowedHandler } from './middleware/errorHandler';
 import { SUCCESS_MESSAGES } from './constants/messages';
 import { STATUS_CODES } from './constants/statusCodes';
+import { csrfProtection, issueCsrfToken } from './middleware/csrf';
 
 import userRoutes from './routes/userRoutes';
 import serviceRoutes from './routes/serviceRoutes';
@@ -21,6 +22,7 @@ import publicRoutes from './routes/publicRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import authRoutes from './routes/authRoutes';
 import addressRoutes from './routes/addressRoutes';
+import orderController from './controllers/orderController';
 
 const app = express();
 
@@ -37,6 +39,12 @@ app.use(
         origin: environment.CORS_ORIGIN,
         credentials: true,
     }),
+);
+
+app.post(
+    `${environment.API_PREFIX}/orders/webhook/stripe`,
+    express.raw({ type: 'application/json' }),
+    orderController.handleStripeWebhook,
 );
 
 app.use(express.json({ limit: '10mb' }));
@@ -70,6 +78,9 @@ app.get('/', (req, res) => {
     });
 });
 
+app.get(`${environment.API_PREFIX}/csrf-token`, issueCsrfToken);
+app.use(environment.API_PREFIX, csrfProtection);
+
 app.use(`${environment.API_PREFIX}/users`, userRoutes);
 app.use(`${environment.API_PREFIX}/services`, serviceRoutes);
 app.use(`${environment.API_PREFIX}/orders`, orderRoutes);
@@ -78,6 +89,7 @@ app.use(`${environment.API_PREFIX}/reviews`, reviewRoutes);
 app.use(`${environment.API_PREFIX}/upload`, uploadRoutes);
 app.use(`${environment.API_PREFIX}/auth`, authRoutes);
 app.use(`${environment.API_PREFIX}/addresses`, addressRoutes);
+app.use(`${environment.API_PREFIX}/public`, publicRoutes);
 app.use('/uploads', express.static(path.resolve(process.cwd(), environment.UPLOAD_PATH)));
 app.use('/', publicRoutes);
 

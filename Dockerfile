@@ -1,18 +1,24 @@
-# Use official Node.js LTS image
-FROM node:18-alpine
+# syntax=docker/dockerfile:1
+FROM node:18-alpine AS build
 
-# Set working directory
 WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci
 
-# Copy the rest of the app
 COPY . .
+RUN npm run build
 
-# Expose the app port (default: 5000)
+FROM node:18-alpine AS runtime
+
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /usr/src/app/dist ./dist
+
 EXPOSE 5000
 
-# Start the app
-CMD ["npm", "start"] 
+CMD ["node", "dist/server.js"]

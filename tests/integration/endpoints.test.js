@@ -207,7 +207,7 @@ describe('API Endpoints - Route Testing', () => {
                 const response = await request(app)
                     .post('/api/orders')
                     .send(orderData)
-                    .expect(STATUS_CODES.UNAUTHORIZED); // Authentication required before validation
+                    .expect(STATUS_CODES.BAD_REQUEST); // Guest checkout validates order content
 
                 expect(response.body).toHaveProperty('success', false);
             });
@@ -216,7 +216,7 @@ describe('API Endpoints - Route Testing', () => {
                 const response = await request(app)
                     .post('/api/orders')
                     .send({})
-                    .expect(STATUS_CODES.UNAUTHORIZED); // Authentication required before validation
+                    .expect(STATUS_CODES.BAD_REQUEST);
 
                 expect(response.body).toHaveProperty('success', false);
             });
@@ -445,7 +445,6 @@ describe('API Endpoints - Route Testing', () => {
                 { method: 'PUT', path: '/api/services/test-id' },
                 { method: 'DELETE', path: '/api/services/test-id' },
                 { method: 'GET', path: '/api/orders' },
-                { method: 'POST', path: '/api/orders' },
                 { method: 'PUT', path: '/api/reviews/test-id' },
                 { method: 'DELETE', path: '/api/reviews/test-id' },
             ];

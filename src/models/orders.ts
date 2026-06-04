@@ -12,6 +12,14 @@ const orderSchema = new Schema<IOrder>(
             trim: true,
             match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
         },
+        orderNumber: {
+            type: String,
+            required: [true, 'Order number is required'],
+            unique: true,
+            uppercase: true,
+            trim: true,
+            index: true,
+        },
         items: [
             {
                 serviceId: {
@@ -32,6 +40,35 @@ const orderSchema = new Schema<IOrder>(
                 },
             },
         ],
+        subtotal: {
+            type: Number,
+            required: [true, 'Subtotal is required'],
+            min: [0, 'Subtotal cannot be negative'],
+            default: 0,
+        },
+        shippingFee: {
+            type: Number,
+            required: [true, 'Shipping fee is required'],
+            min: [0, 'Shipping fee cannot be negative'],
+            default: 0,
+        },
+        tax: {
+            type: Number,
+            required: [true, 'Tax is required'],
+            min: [0, 'Tax cannot be negative'],
+            default: 0,
+        },
+        discount: {
+            type: Number,
+            required: [true, 'Discount is required'],
+            min: [0, 'Discount cannot be negative'],
+            default: 0,
+        },
+        couponCode: {
+            type: String,
+            uppercase: true,
+            trim: true,
+        },
         total: {
             type: Number,
             required: [true, 'Total is required'],
@@ -64,6 +101,15 @@ const orderSchema = new Schema<IOrder>(
         timestamps: true,
     },
 );
+
+orderSchema.pre('validate', function generateOrderNumber(next) {
+    if (!this.orderNumber) {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+        this.orderNumber = `BDS-${timestamp}-${random}`;
+    }
+    next();
+});
 
 orderSchema.index({ email: 1 });
 orderSchema.index({ status: 1 });

@@ -2,15 +2,17 @@ import express from 'express';
 import userController from '../controllers/userController';
 import { validateUser, validateUserUpdate, validateProfileUpdate } from '../middleware/validation';
 import { authenticateToken, requireAdmin, requireOwnership } from '../middleware/auth';
-import { apiRateLimiter } from '../middleware/rateLimiter';
+import { apiRateLimiter, authRateLimiter } from '../middleware/rateLimiter';
 import { methodNotAllowedHandler } from '../middleware/errorHandler';
 
 const router = express.Router();
 
-router.post('/register', validateUser, apiRateLimiter, userController.createUser);
-router.post('/login', apiRateLimiter, userController.login);
+router.post('/register', authRateLimiter, validateUser, userController.createUser);
+router.post('/login', authRateLimiter, userController.login);
 router.post('/logout', apiRateLimiter, userController.logout);
-router.post('/refresh', apiRateLimiter, userController.refreshToken);
+router.post('/refresh', authRateLimiter, userController.refreshToken);
+router.post('/password-reset/request', authRateLimiter, userController.requestPasswordReset);
+router.post('/password-reset/confirm', authRateLimiter, userController.resetPassword);
 router.get(
     '/:email',
     authenticateToken,

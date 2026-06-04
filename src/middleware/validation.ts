@@ -161,7 +161,24 @@ const validateService = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const validateServiceUpdate = (req: Request, res: Response, next: NextFunction) => {
-    const { name, model, img, price, description, config, category, madeIn } = req.body;
+    const {
+        name,
+        model,
+        img,
+        price,
+        originalPrice,
+        discountPercent,
+        stock,
+        description,
+        config,
+        category,
+        madeIn,
+        isFeatured,
+        isFlashDeal,
+        isNewArrival,
+        tags,
+        images,
+    } = req.body;
 
     if (name && name.length < 2) {
         return res.status(400).json({
@@ -177,15 +194,44 @@ const validateServiceUpdate = (req: Request, res: Response, next: NextFunction) 
         });
     }
 
+    if (originalPrice !== undefined && originalPrice < 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'Original price cannot be negative',
+        });
+    }
+
+    if (discountPercent !== undefined && (discountPercent < 0 || discountPercent > 100)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Discount percent must be between 0 and 100',
+        });
+    }
+
+    if (stock !== undefined && (!Number.isFinite(Number(stock)) || Number(stock) < 0)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Stock cannot be negative',
+        });
+    }
+
     if (
         !name &&
         !model &&
         !img &&
         price === undefined &&
+        originalPrice === undefined &&
+        discountPercent === undefined &&
+        stock === undefined &&
         !description &&
         !config &&
         !category &&
-        !madeIn
+        !madeIn &&
+        isFeatured === undefined &&
+        isFlashDeal === undefined &&
+        isNewArrival === undefined &&
+        tags === undefined &&
+        images === undefined
     ) {
         return res.status(400).json({
             success: false,

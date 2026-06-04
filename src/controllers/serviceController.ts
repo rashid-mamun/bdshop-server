@@ -69,7 +69,10 @@ const serviceController = {
                 },
             });
         } catch (error: Error | unknown) {
-            res.status(500).json({ success: false, error: getErrorMessage(error) });
+            res.status(500).json({
+                success: false,
+                error: 'Something went wrong. Please try again.',
+            });
         }
     },
 
@@ -87,7 +90,10 @@ const serviceController = {
             if (getErrorName(error) === 'ValidationError') {
                 return res.status(400).json({ success: false, error: getErrorMessage(error) });
             }
-            res.status(500).json({ success: false, error: getErrorMessage(error) });
+            res.status(500).json({
+                success: false,
+                error: 'Something went wrong. Please try again.',
+            });
         }
     },
 
@@ -111,7 +117,10 @@ const serviceController = {
             const categories = await serviceService.getAllCategories();
             res.json(createSuccessResponse(categories));
         } catch (error: Error | unknown) {
-            res.status(500).json({ success: false, error: getErrorMessage(error) });
+            res.status(500).json({
+                success: false,
+                error: 'Something went wrong. Please try again.',
+            });
         }
     },
 
@@ -130,7 +139,10 @@ const serviceController = {
                 },
             });
         } catch (error: Error | unknown) {
-            res.status(500).json({ success: false, error: getErrorMessage(error) });
+            res.status(500).json({
+                success: false,
+                error: 'Something went wrong. Please try again.',
+            });
         }
     },
 
@@ -139,7 +151,10 @@ const serviceController = {
             const stats = await serviceService.getServiceStatistics();
             res.json(createSuccessResponse(stats));
         } catch (error: Error | unknown) {
-            res.status(500).json({ success: false, error: getErrorMessage(error) });
+            res.status(500).json({
+                success: false,
+                error: 'Something went wrong. Please try again.',
+            });
         }
     },
 };
