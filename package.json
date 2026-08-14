@@ -29,8 +29,8 @@
         "format": "prettier --write .",
         "clean": "node -e \"const fs=require('fs'); for (const dir of ['logs','coverage']) fs.rmSync(dir,{recursive:true,force:true});\"",
         "setup": "npm install && npm run lint:fix && npm run format",
-        "seed": "ts-node src/seed.ts",
-        "seed:fresh": "ts-node src/seed.ts --fresh"
+        "seed": "ts-node src/seeds/index.ts",
+        "seed:fresh": "ts-node src/seeds/index.ts --fresh"
     },
     "keywords": [
         "ecommerce",
