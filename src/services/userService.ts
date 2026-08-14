@@ -144,13 +144,25 @@ const userService = {
     },
 
     async makeUserAdmin(email: string) {
+        return this.updateUserRole(email, 'admin');
+    },
+
+    async updateUserRole(email: string, role: string) {
         try {
-            const user = await User.findOneAndUpdate({ email }, { role: 'admin' }, { new: true });
+            const validRoles = ['user', 'admin', 'superadmin'];
+            if (!validRoles.includes(role)) {
+                throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+            }
+            const user = await User.findOneAndUpdate(
+                { email },
+                { role },
+                { new: true, runValidators: true },
+            );
             if (!user) throw new Error('User not found');
             return user;
         } catch (error: Error | unknown) {
             const errorMessage = error instanceof Error ? getErrorMessage(error) : String(error);
-            logger.error('Make admin error:', errorMessage);
+            logger.error('Update user role error:', errorMessage);
             throw error;
         }
     },

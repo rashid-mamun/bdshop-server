@@ -9,6 +9,7 @@ export interface IService extends Document {
     price: number;
     description: string;
     config: string;
+    specifications?: Record<string, string>;
     category: string;
     madeIn: string;
     date: string;

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import publicService from '../services/publicService';
 import {
     getErrorMessage,
@@ -114,7 +115,7 @@ const publicController = {
     }),
 
     createReturnRequest: asyncHandler(async (req: Request, res: Response) => {
-        const { orderId, email, itemScope, reason, details } = req.body;
+        const { orderId, email, itemScope, reason, details, imageUrl } = req.body;
         if (!orderId || !email || !itemScope || !reason) {
             return res.status(400).json({
                 success: false,
@@ -125,17 +126,28 @@ const publicController = {
             return res.status(400).json({ success: false, error: 'Valid email is required' });
         }
 
-        const order = await Order.findOne({ _id: orderId, email: String(email).toLowerCase() });
+        const normalizedOrderId = String(orderId).trim();
+        const orderIdentifiers: Record<string, unknown>[] = [
+            { orderNumber: normalizedOrderId.toUpperCase() },
+        ];
+        if (mongoose.Types.ObjectId.isValid(normalizedOrderId)) {
+            orderIdentifiers.push({ _id: normalizedOrderId });
+        }
+        const order = await Order.findOne({
+            email: String(email).toLowerCase(),
+            $or: orderIdentifiers,
+        });
         if (!order) {
             return res.status(404).json({ success: false, error: 'Order not found' });
         }
 
         const request = await ReturnRequest.create({
-            orderId,
-            email,
+            orderId: order._id,
+            email: String(email).toLowerCase(),
             itemScope,
             reason,
             details,
+            imageUrl: imageUrl || '',
         });
 
         await sendReturnRequestEmail(email, request._id.toString());

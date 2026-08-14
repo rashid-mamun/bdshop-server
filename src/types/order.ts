@@ -20,6 +20,7 @@ export interface IShippingAddress {
 
 export interface IOrder extends Document {
     orderNumber: string;
+    userId?: mongoose.Types.ObjectId;
     email: string;
     items: IOrderItem[];
     subtotal: number;

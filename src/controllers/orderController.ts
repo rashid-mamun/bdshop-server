@@ -52,6 +52,7 @@ const orderController = {
             const { paymentMethodId, items, shippingAddress, couponCode, idempotencyKey } =
                 req.body;
             const requesterEmail = (req as RequestWithUser).user?.email;
+            const requesterId = (req as RequestWithUser).user?.id;
             const orderEmail = requesterEmail || req.body.email;
 
             if (!orderEmail) {
@@ -157,6 +158,7 @@ const orderController = {
 
             const order = await orderService.createOrder({
                 ...req.body,
+                userId: requesterId,
                 email: orderEmail,
                 items: normalizedItems,
                 subtotal: totals.subtotal,
@@ -298,8 +300,10 @@ const orderController = {
                 requester &&
                 requester.role !== USER_ROLES.ADMIN &&
                 requester.role !== USER_ROLES.SUPER_ADMIN &&
-                requester.email &&
-                requester.email !== order.email
+                (!requester.id ||
+                    !requester.email ||
+                    String(order.userId || '') !== requester.id ||
+                    order.email !== requester.email)
             ) {
                 return res
                     .status(STATUS_CODES.FORBIDDEN)
@@ -359,13 +363,14 @@ const orderController = {
     getMyOrders: asyncHandler(async (req: Request, res: Response) => {
         const { page, limit, status } = req.query as Record<string, unknown>;
         const userEmail = (req as RequestWithUser).user?.email;
-        if (!userEmail) {
+        const userId = (req as RequestWithUser).user?.id;
+        if (!userEmail || !userId) {
             return res.status(STATUS_CODES.UNAUTHORIZED).json({
                 success: false,
                 error: ERROR_MESSAGES.UNAUTHORIZED,
             });
         }
-        const filters: Record<string, unknown> = { email: userEmail };
+        const filters: Record<string, unknown> = { userId, email: userEmail };
         if (status && status !== 'all') filters.status = status;
         const result = await orderService.getAllOrders(filters as any, {
             page: page as string | number | undefined,
@@ -380,19 +385,21 @@ const orderController = {
 
     getMyStats: asyncHandler(async (req: Request, res: Response) => {
         const userEmail = (req as RequestWithUser).user?.email;
-        if (!userEmail) {
+        const userId = (req as RequestWithUser).user?.id;
+        if (!userEmail || !userId) {
             return res.status(STATUS_CODES.UNAUTHORIZED).json({
                 success: false,
                 error: ERROR_MESSAGES.UNAUTHORIZED,
             });
         }
         const [total, pending, completed] = await Promise.all([
-            Order.countDocuments({ email: userEmail }),
+            Order.countDocuments({ userId, email: userEmail }),
             Order.countDocuments({
+                userId,
                 email: userEmail,
                 status: { $in: ['pending', 'confirmed', 'processing', 'shipped'] },
             }),
-            Order.countDocuments({ email: userEmail, status: 'delivered' }),
+            Order.countDocuments({ userId, email: userEmail, status: 'delivered' }),
         ]);
         res.status(STATUS_CODES.OK).json({
             success: true,

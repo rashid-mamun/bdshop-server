@@ -67,6 +67,9 @@ const requiredEnvVars = [
     'FRONTEND_URL',
     'STRIPE_SECRET_KEY',
     'STRIPE_WEBHOOK_SECRET',
+    'SMTP_HOST',
+    'SMTP_USER',
+    'SMTP_PASS',
     'EMAIL_FROM',
 ];
 const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);

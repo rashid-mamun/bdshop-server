@@ -5,6 +5,11 @@ export type { IOrder } from '../types';
 
 const orderSchema = new Schema<IOrder>(
     {
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            index: true,
+        },
         email: {
             type: String,
             required: [true, 'Email is required'],
@@ -115,6 +120,7 @@ orderSchema.index({ email: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ email: 1, status: 1 });
+orderSchema.index({ userId: 1, email: 1, status: 1 });
 
 export const Order = mongoose.model<IOrder>('Order', orderSchema);
 export default Order;

@@ -33,7 +33,7 @@ const cartController = {
     addToCart: asyncHandler(async (req: Request, res: Response) => {
         const requester = (req as RequestWithUser).user;
         if (!requester?.email) {
-            return res.status(401).json(createErrorResponse(ERROR_MESSAGES.UNAUTHORIZED));
+            return res.status(401).json(createErrorResponse(ERROR_MESSAGES.UNAUTHORIZED, 401));
         }
         try {
             const service = mongoose.isValidObjectId(req.body.id)
@@ -62,7 +62,7 @@ const cartController = {
                 if (service.stock < totalRequestedQuantity) {
                     return res
                         .status(400)
-                        .json(createErrorResponse('Requested quantity is out of stock'));
+                        .json(createErrorResponse('Requested quantity is out of stock', 400));
                 }
             }
             const { cartItem, created } = await cartService.addToCart(cartData);
@@ -84,7 +84,7 @@ const cartController = {
             }
         } catch (error: Error | unknown) {
             if (getErrorName(error) === 'ValidationError') {
-                res.status(400).json(createErrorResponse(getErrorMessage(error)));
+                res.status(400).json(createErrorResponse(getErrorMessage(error), 400));
             } else {
                 res.status(500).json(createErrorResponse(getErrorMessage(error)));
             }
@@ -104,19 +104,19 @@ const cartController = {
         try {
             const cartItem = await Cart.findById(id as string);
             if (!cartItem) {
-                return res.status(404).json(createErrorResponse('Cart not found'));
+                return res.status(404).json(createErrorResponse('Cart not found', 404));
             }
             if (!canAccessCart(req as RequestWithUser, cartItem.email)) {
                 return res
                     .status(403)
-                    .json(createErrorResponse(ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS));
+                    .json(createErrorResponse(ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS, 403));
             }
             if (mongoose.isValidObjectId(cartItem.id)) {
                 const service = await Service.findById(cartItem.id);
                 if (service && service.stock < quantity) {
                     return res
                         .status(400)
-                        .json(createErrorResponse('Requested quantity is out of stock'));
+                        .json(createErrorResponse('Requested quantity is out of stock', 400));
                 }
             }
             cartItem.quantity = quantity;
@@ -135,7 +135,7 @@ const cartController = {
             );
         } catch (error: Error | unknown) {
             if (getErrorName(error) === 'ValidationError') {
-                res.status(400).json(createErrorResponse(getErrorMessage(error)));
+                res.status(400).json(createErrorResponse(getErrorMessage(error), 400));
             } else {
                 res.status(500).json(createErrorResponse(getErrorMessage(error)));
             }
@@ -147,12 +147,12 @@ const cartController = {
         try {
             const cartItem = await Cart.findById(id as string);
             if (!cartItem) {
-                return res.status(404).json(createErrorResponse('Cart not found'));
+                return res.status(404).json(createErrorResponse('Cart not found', 404));
             }
             if (!canAccessCart(req as RequestWithUser, cartItem.email)) {
                 return res
                     .status(403)
-                    .json(createErrorResponse(ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS));
+                    .json(createErrorResponse(ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS, 403));
             }
             await cartItem.deleteOne();
             res.status(200).json(
@@ -160,7 +160,7 @@ const cartController = {
             );
         } catch (error: Error | unknown) {
             if (getErrorName(error) === 'ValidationError') {
-                res.status(400).json(createErrorResponse(getErrorMessage(error)));
+                res.status(400).json(createErrorResponse(getErrorMessage(error), 400));
             } else {
                 res.status(500).json(createErrorResponse(getErrorMessage(error)));
             }

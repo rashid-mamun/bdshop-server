@@ -31,6 +31,14 @@ router.put(
     userController.updateUser,
 );
 router.put('/admin', authenticateToken, requireAdmin, apiRateLimiter, userController.makeUserAdmin);
+router.put('/role', authenticateToken, requireAdmin, apiRateLimiter, userController.updateUserRole);
+router.put(
+    '/:email/role',
+    authenticateToken,
+    requireAdmin,
+    apiRateLimiter,
+    userController.updateUserRole,
+);
 router.delete(
     '/:email',
     authenticateToken,

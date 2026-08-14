@@ -80,7 +80,6 @@ router.post(
     '/',
     uploadRateLimiter,
     authenticateToken,
-    requireAdmin,
     upload.single('image'),
     async (req: Request, res: Response) => {
         try {

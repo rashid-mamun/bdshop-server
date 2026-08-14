@@ -16,8 +16,9 @@ const asyncHandler = (fn: AsyncFunction) => {
                 correlationId: req.headers['x-correlation-id'],
             });
 
-            const errorResponse = createErrorResponse(error);
-            res.status(error.status || 500).json(errorResponse);
+            const statusCode = error.status || 500;
+            const errorResponse = createErrorResponse(error, statusCode);
+            res.status(statusCode).json(errorResponse);
         });
     };
 };

@@ -358,8 +358,8 @@ For server errors, the public response is generic:
 
 ```json
 {
-  "success": false,
-  "error": "Something went wrong. Please try again."
+    "success": false,
+    "error": "Something went wrong. Please try again."
 }
 ```
 

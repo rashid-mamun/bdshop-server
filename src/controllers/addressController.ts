@@ -96,15 +96,6 @@ const addressController = {
         const user = await User.findOne({ email: (req as any).user.email });
         if (!user) return sendErrorResponse(res, STATUS_CODES.NOT_FOUND, 'User not found');
 
-        const count = await Address.countDocuments({ userId: user._id });
-        if (count <= 1) {
-            return sendErrorResponse(
-                res,
-                STATUS_CODES.BAD_REQUEST,
-                'Cannot delete your only address',
-            );
-        }
-
         const address = await Address.findOneAndDelete({ _id: req.params.id, userId: user._id });
         if (!address) return sendErrorResponse(res, STATUS_CODES.NOT_FOUND, 'Address not found');
 
@@ -123,15 +114,16 @@ const addressController = {
         const user = await User.findOne({ email: (req as any).user.email });
         if (!user) return sendErrorResponse(res, STATUS_CODES.NOT_FOUND, 'User not found');
 
-        await Address.updateMany({ userId: user._id }, { isDefault: false });
-        const address = await Address.findOneAndUpdate(
-            { _id: req.params.id, userId: user._id },
-            { isDefault: true },
-            { new: true },
-        );
-        if (!address) return sendErrorResponse(res, STATUS_CODES.NOT_FOUND, 'Address not found');
+        const ownedAddress = await Address.findOne({ _id: req.params.id, userId: user._id });
+        if (!ownedAddress) {
+            return sendErrorResponse(res, STATUS_CODES.NOT_FOUND, 'Address not found');
+        }
 
-        sendSuccessResponse(res, STATUS_CODES.OK, 'Default address updated', address);
+        await Address.updateMany({ userId: user._id }, { isDefault: false });
+        ownedAddress.isDefault = true;
+        await ownedAddress.save();
+
+        sendSuccessResponse(res, STATUS_CODES.OK, 'Default address updated', ownedAddress);
     }),
 };
 

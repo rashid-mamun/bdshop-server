@@ -28,6 +28,10 @@ const returnRequestSchema = new Schema(
             trim: true,
             maxlength: 2000,
         },
+        imageUrl: {
+            type: String,
+            trim: true,
+        },
         status: {
             type: String,
             enum: ['submitted', 'reviewing', 'approved', 'rejected', 'refunded'],

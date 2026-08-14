@@ -283,6 +283,22 @@ const userController = {
         );
     }),
 
+    updateUserRole: asyncHandler(async (req: Request, res: Response) => {
+        const { email, role } = req.body;
+        const targetEmail = (req.params.email || email) as string;
+        if (!targetEmail || !role) {
+            return sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, 'Email and role are required');
+        }
+        const user = await userService.updateUserRole(targetEmail, role);
+        logger.info(`User role updated to ${role}: ${user.email}`);
+        sendSuccessResponse(
+            res,
+            STATUS_CODES.OK,
+            'User role updated successfully',
+            user.toPublicJSON(),
+        );
+    }),
+
     getProfile: asyncHandler(async (req: Request, res: Response) => {
         const user = await userService.getUserByEmail((req as any).user.email as string);
         sendSuccessResponse(

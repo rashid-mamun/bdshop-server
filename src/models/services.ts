@@ -44,6 +44,11 @@ const serviceSchema = new Schema<IService>(
             required: [true, 'Configuration is required'],
             trim: true,
         },
+        specifications: {
+            type: Map,
+            of: String,
+            default: {},
+        },
         category: {
             type: String,
             required: [true, 'Category is required'],

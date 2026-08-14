@@ -79,7 +79,19 @@ const serviceService = {
 
             const query: any = {};
             if (filters.category) query.category = filters.category;
-            if (filters.search) query.$text = { $search: filters.search };
+            if (filters.search) {
+                const searchRegex = new RegExp(
+                    filters.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+                    'i',
+                );
+                query.$or = [
+                    { name: searchRegex },
+                    { model: searchRegex },
+                    { category: searchRegex },
+                    { tags: searchRegex },
+                    { description: searchRegex },
+                ];
+            }
             if (filters.featured === 'true' || filters.featured === true) query.isFeatured = true;
             if (filters.flashDeal === 'true' || filters.flashDeal === true)
                 query.isFlashDeal = true;

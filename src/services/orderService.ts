@@ -12,6 +12,7 @@ import { APP_CONFIG } from '../constants/config';
 type OrderFilters = {
     status?: string;
     email?: string;
+    userId?: string;
 };
 
 type PaginationOptions = {
@@ -67,6 +68,7 @@ const orderService = {
             const query: Record<string, unknown> = {};
             if (filters.status) query.status = filters.status;
             if (filters.email) query.email = filters.email;
+            if (filters.userId) query.userId = filters.userId;
 
             const [orders, total] = await Promise.all([
                 Order.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize),

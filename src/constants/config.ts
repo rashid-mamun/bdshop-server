@@ -11,7 +11,7 @@ export const APP_CONFIG = {
     ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
     UPLOAD_PATH: 'uploads/',
 
-    PASSWORD_MIN_LENGTH: 6,
+    PASSWORD_MIN_LENGTH: 8,
     PASSWORD_MAX_LENGTH: 128,
     EMAIL_MAX_LENGTH: 254,
     DISPLAY_NAME_MIN_LENGTH: 2,

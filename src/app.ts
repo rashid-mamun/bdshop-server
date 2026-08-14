@@ -91,7 +91,6 @@ app.use(`${environment.API_PREFIX}/auth`, authRoutes);
 app.use(`${environment.API_PREFIX}/addresses`, addressRoutes);
 app.use(`${environment.API_PREFIX}/public`, publicRoutes);
 app.use('/uploads', express.static(path.resolve(process.cwd(), environment.UPLOAD_PATH)));
-app.use('/', publicRoutes);
 
 app.use(notFoundHandler);
 app.use(methodNotAllowedHandler);
