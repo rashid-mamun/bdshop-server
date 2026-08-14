@@ -6,6 +6,10 @@ const blogModule = require('../../src/models/blogs');
 const Blog = blogModule.default || blogModule.Blog || blogModule;
 const teamModule = require('../../src/models/ourTeams');
 const TeamMember = teamModule.default || teamModule.OurTeam || teamModule;
+const orderModule = require('../../src/models/orders');
+const Order = orderModule.default || orderModule.Order || orderModule;
+const returnModule = require('../../src/models/returnRequest');
+const ReturnRequest = returnModule.default || returnModule.ReturnRequest || returnModule;
 const { STATUS_CODES } = require('../../src/constants/statusCodes');
 const { SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../../src/constants/messages');
 
@@ -238,6 +242,72 @@ describe('Public Endpoints', () => {
 
             expect(response.body.success).toBe(false);
             expect(response.body.error).toBe('Invalid team member ID format');
+        });
+    });
+
+    describe('POST /returns', () => {
+        let order;
+
+        beforeEach(async () => {
+            await ReturnRequest.deleteMany({});
+            await Order.deleteMany({});
+            order = await Order.create({
+                email: 'buyer@example.com',
+                items: [
+                    {
+                        serviceId: new mongoose.Types.ObjectId(),
+                        name: 'Test product',
+                        price: 1000,
+                        quantity: 1,
+                    },
+                ],
+                subtotal: 1000,
+                shippingFee: 120,
+                tax: 0,
+                discount: 0,
+                total: 1120,
+                shippingAddress: {
+                    street: '123 Test Street',
+                    district: 'Dhaka',
+                    division: 'Dhaka',
+                    postalCode: '1200',
+                    country: 'Bangladesh',
+                    phone: '+8801000000220',
+                },
+            });
+        });
+
+        afterEach(async () => {
+            await ReturnRequest.deleteMany({});
+            await Order.deleteMany({});
+        });
+
+        it('should accept the customer-facing order number', async () => {
+            const response = await request(app)
+                .post('/returns')
+                .send({
+                    orderId: order.orderNumber,
+                    email: 'buyer@example.com',
+                    itemScope: 'entire_order',
+                    reason: 'damaged',
+                    details: 'Package arrived damaged',
+                })
+                .expect(STATUS_CODES.CREATED);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.orderId).toBe(order._id.toString());
+        });
+
+        it('should not expose another customer order by number', async () => {
+            await request(app)
+                .post('/returns')
+                .send({
+                    orderId: order.orderNumber,
+                    email: 'someone-else@example.com',
+                    itemScope: 'entire_order',
+                    reason: 'wrong',
+                })
+                .expect(STATUS_CODES.NOT_FOUND);
         });
     });
 

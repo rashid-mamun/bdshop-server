@@ -74,6 +74,7 @@ describe('Order Endpoints', () => {
 
         // Create test order (all required fields)
         testOrder = new Order({
+            userId: testUser._id,
             email: testUser.email,
             items: [
                 {
@@ -140,6 +141,7 @@ describe('Order Endpoints', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.message).toBe(SUCCESS_MESSAGES.ORDER_CREATED);
             expect(response.body.data.email).toBe(orderData.email);
+            expect(response.body.data.userId).toBe(testUser._id.toString());
             expect(response.body.data.subtotal).toBe(orderData.total);
             expect(response.body.data.shippingFee).toBe(120);
             expect(response.body.data.total).toBe(1120);
@@ -227,6 +229,7 @@ describe('Order Endpoints', () => {
 
             expect(response.body.success).toBe(true);
             expect(response.body.data.email).toBe(orderData.email);
+            expect(response.body.data.userId).toBeUndefined();
             expect(response.body.data.total).toBe(1120);
         });
     });
@@ -267,6 +270,42 @@ describe('Order Endpoints', () => {
             expect(response.body.data.orders.every((order) => order.email === testUser.email)).toBe(
                 true,
             );
+            expect(
+                response.body.data.orders.every(
+                    (order) => order.userId === testUser._id.toString(),
+                ),
+            ).toBe(true);
+        });
+
+        it('should not expose legacy email-only orders to a newly registered account', async () => {
+            await Order.create({
+                email: testUser.email,
+                items: [
+                    {
+                        serviceId: testService._id,
+                        name: testService.name,
+                        price: testService.price,
+                        quantity: 1,
+                    },
+                ],
+                total: testService.price,
+                shippingAddress: {
+                    street: 'Legacy Street',
+                    district: 'Dhaka',
+                    division: 'Dhaka',
+                    postalCode: '1200',
+                    country: 'Bangladesh',
+                    phone: '+8801000000105',
+                },
+            });
+
+            const response = await request(app)
+                .get('/api/orders/my-orders')
+                .set('Authorization', `Bearer ${authToken}`)
+                .expect(STATUS_CODES.OK);
+
+            expect(response.body.data.orders).toHaveLength(1);
+            expect(response.body.data.orders[0]._id).toBe(testOrder._id.toString());
         });
 
         it('should return 401 without authentication', async () => {

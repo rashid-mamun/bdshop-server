@@ -240,5 +240,26 @@ describe('Address Endpoints', () => {
             const previous = await Address.findById(address1._id);
             expect(previous.isDefault).toBe(false);
         });
+
+        it('should keep the current default when the requested address does not exist', async () => {
+            const currentDefault = await Address.create({
+                userId: testUser._id,
+                name: 'Home',
+                phone: '+8801000000211',
+                addressLine: '123 Test Street',
+                district: 'Dhaka',
+                division: 'Dhaka',
+                postalCode: '1200',
+                isDefault: true,
+            });
+
+            await request(app)
+                .patch('/api/addresses/65f1f1f1f1f1f1f1f1f1f1f1/set-default')
+                .set('Authorization', `Bearer ${authToken}`)
+                .expect(STATUS_CODES.NOT_FOUND);
+
+            const unchanged = await Address.findById(currentDefault._id);
+            expect(unchanged.isDefault).toBe(true);
+        });
     });
 });

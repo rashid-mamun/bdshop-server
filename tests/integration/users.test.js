@@ -111,7 +111,7 @@ describe('User Endpoints', () => {
 
         it('should return 400 for duplicate email', async () => {
             const userData = {
-                email: 'test@example.com', // Already exists
+                email: 'TEST@EXAMPLE.COM', // Same normalized email already exists
                 displayName: 'Another User',
                 password: 'password123',
                 phone: '+8801000000005',
