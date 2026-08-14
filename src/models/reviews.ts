@@ -5,6 +5,16 @@ export type { IReview } from '../types';
 
 const reviewSchema = new Schema<IReview>(
     {
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            index: true,
+        },
+        orderId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Order',
+            index: true,
+        },
         name: {
             type: String,
             required: [true, 'Reviewer name is required'],
@@ -46,6 +56,10 @@ const reviewSchema = new Schema<IReview>(
             min: 1,
             max: 5,
         },
+        verifiedPurchase: {
+            type: Boolean,
+            default: false,
+        },
         date: {
             type: Date,
             default: Date.now,
@@ -62,6 +76,7 @@ reviewSchema.index({ star: 1 });
 reviewSchema.index({ date: -1 });
 reviewSchema.index({ title: 'text', description: 'text' });
 reviewSchema.index({ email: 1, serviceId: 1 }, { unique: true });
+reviewSchema.index({ userId: 1, serviceId: 1 });
 
 export const Review = mongoose.model<IReview>('Review', reviewSchema);
 export default Review;

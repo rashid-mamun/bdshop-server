@@ -1,6 +1,8 @@
 import mongoose, { Document } from 'mongoose';
 
 export interface IReview extends Document {
+    userId?: mongoose.Types.ObjectId;
+    orderId?: mongoose.Types.ObjectId;
     name: string;
     email: string;
     serviceId: mongoose.Types.ObjectId;
@@ -8,6 +10,7 @@ export interface IReview extends Document {
     img: string;
     description?: string;
     star: 1 | 2 | 3 | 4 | 5;
+    verifiedPurchase?: boolean;
     date: Date;
     createdAt?: Date;
     updatedAt?: Date;

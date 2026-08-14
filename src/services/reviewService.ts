@@ -93,6 +93,7 @@ const reviewService = {
             const [reviews, total] = await Promise.all([
                 Review.find(query)
                     .select({ __v: 0 })
+                    .populate('serviceId', 'model name img category')
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(pageSize),

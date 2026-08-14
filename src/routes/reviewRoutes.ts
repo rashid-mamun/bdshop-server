@@ -11,6 +11,7 @@ router.get('/', apiRateLimiter, reviewController.getAllReviews);
 router.get('/stats/:serviceId', apiRateLimiter, reviewController.getReviewStatistics);
 
 router.get('/my-reviews', authenticateToken, apiRateLimiter, reviewController.getMyReviews);
+router.get('/can-review/:productId', authenticateToken, apiRateLimiter, reviewController.canReview);
 router.get('/:id', apiRateLimiter, reviewController.getReviewById);
 
 router.post('/', authenticateToken, validateReview, apiRateLimiter, reviewController.createReview);

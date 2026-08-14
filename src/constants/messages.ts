@@ -91,7 +91,7 @@ export const VALIDATION_MESSAGES = {
     EMAIL_REQUIRED: 'Email is required',
     EMAIL_INVALID: 'Please provide a valid email address',
     PASSWORD_REQUIRED: 'Password is required',
-    PASSWORD_MIN_LENGTH: 'Password must be at least 6 characters long',
+    PASSWORD_MIN_LENGTH: 'Password must be at least 8 characters long',
     DISPLAY_NAME_REQUIRED: 'Display name is required',
     DISPLAY_NAME_MIN_LENGTH: 'Display name must be at least 2 characters long',
     DISTRICT_REQUIRED: 'District is required',
