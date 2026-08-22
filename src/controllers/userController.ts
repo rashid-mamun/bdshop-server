@@ -16,6 +16,7 @@ import { IUser } from '../types';
 import { User } from '../models/user';
 import { USER_ROLES } from '../constants/config';
 import { sendPasswordResetEmail } from '../services/emailService';
+import environment from '../config/environment';
 
 type RequestWithUser = Request & {
     user?: {
@@ -34,7 +35,7 @@ const userController = {
             const user = await userService.createUser(req.body);
             logger.info(`User created: ${user.email}`);
 
-            const { generateTokens, setAuthCookies } = await import('../utils/jwt');
+            const { generateTokens, setAuthCookies } = await import('../utils/jwt.js');
             const tokens = generateTokens({
                 id: user._id.toString(),
                 email: user.email,
@@ -81,7 +82,7 @@ const userController = {
                 return sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, 'Invalid credentials');
             }
 
-            const { generateTokens, setAuthCookies } = await import('../utils/jwt');
+            const { generateTokens, setAuthCookies } = await import('../utils/jwt.js');
             const tokens = generateTokens({
                 id: user._id.toString(),
                 email: user.email,
@@ -97,7 +98,7 @@ const userController = {
     }),
 
     logout: asyncHandler(async (req: Request, res: Response) => {
-        const { clearAuthCookies } = await import('../utils/jwt');
+        const { clearAuthCookies } = await import('../utils/jwt.js');
         clearAuthCookies(res);
         sendSuccessResponse(res, STATUS_CODES.OK, 'Logout successful');
     }),
@@ -400,7 +401,6 @@ const userController = {
 
         try {
             const jwt = await import('jsonwebtoken');
-            const environment = (await import('../config/environment')).default;
             const payload = jwt.verify(
                 refreshToken,
                 environment.JWT_REFRESH_SECRET as string,
@@ -415,7 +415,7 @@ const userController = {
                 );
             }
 
-            const { generateTokens, setAuthCookies } = await import('../utils/jwt');
+            const { generateTokens, setAuthCookies } = await import('../utils/jwt.js');
             const tokens = generateTokens({
                 id: user._id.toString(),
                 email: user.email,
