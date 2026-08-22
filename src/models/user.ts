@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { IUser } from '../types';
 import { USER_ROLES } from '../constants/config';
 
@@ -90,7 +91,6 @@ userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
     try {
-        const bcrypt = await import('bcryptjs');
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password as string, salt);
         next();

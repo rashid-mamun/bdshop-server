@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import userService from '../services/userService';
 import {
     getErrorMessage,
@@ -446,7 +447,6 @@ const userController = {
             );
         }
         try {
-            const bcrypt = await import('bcryptjs');
             const user = await User.findOne({ email: (req as any).user.email as string }).select(
                 '+password',
             );
